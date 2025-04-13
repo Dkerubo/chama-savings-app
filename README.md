@@ -1,15 +1,14 @@
-# Chama Savings App 💰
+# Chama App
 
-## Objective
-To help savings groups (chamas) manage their contributions, savings, loans, and proposals in one simple platform.
+## Project Idea
+A digital chama (group saving platform) to manage group savings, contributions, loans, and transactions.
 
-## Key Features
-- Create or join a chama
-- View group savings and member contributions
-- Propose and vote on ideas
-- Request and approve loans
+## Objectives
+- Allow users to create or join chamas
+- Track contributions and loans
+- Manage chama finances transparently
 
 ## Tech Stack
-- **Frontend**: HTML/CSS/JS or React
-- **Backend**: Python (Flask) or Node.js
-- **Database**: SQLite or PostgreSQL
+- **Frontend:** React (Vite)
+- **Backend:** Flask (Python)
+- **Database:** SQLite (dev) / PostgreSQL (prod)
