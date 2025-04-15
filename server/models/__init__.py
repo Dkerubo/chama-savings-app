@@ -1,8 +1,7 @@
-# server/models/__init__.py
+from .user import User
 from .member import Member
 from .group import Group
-from .investment import Investment
-from .contribution import Contribution
 from .loan import Loan
+from .contribution import Contribution
 
-__all__ = ['Member', 'Group', 'Investment', 'Contribution', 'Loan']
+__all__ = ["User", "Member", "Group", "Loan", "Contribution"]

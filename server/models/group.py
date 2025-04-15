@@ -22,6 +22,8 @@ class Group(db.Model, SerializerMixin):
     )
     loans = db.relationship('Loan', back_populates='group')
     contributions = db.relationship('Contribution', back_populates='group')
+    investments = db.relationship('Investment', back_populates='group')
+    
 
     def get_total_savings(self):
         return sum(contribution.amount for contribution in self.contributions)
