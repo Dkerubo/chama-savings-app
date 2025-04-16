@@ -1,142 +1,148 @@
 import os
 from datetime import datetime
 from functools import wraps
-
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.exceptions import BadRequest, Unauthorized, Forbidden
 from dotenv import load_dotenv
-#from flasgger import Swagger
+from database import db, init_db
+from models import User, Member, Group, Loan, Contribution, Investment
 
 # Load environment variables
 load_dotenv()
 
 # Initialize extensions
-db = SQLAlchemy()
 migrate = Migrate()
+csrf = CSRFProtect()
 cors = CORS()
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///chama.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret')
-
-    db.init_app(app)
+    app.config.from_object(Config)
+    
+    # Initialize extensions
+    init_db(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
     cors.init_app(app, supports_credentials=True)
-    #Swagger(app)
-
-    from models import User, Member, Group, Loan, Contribution
+    
     register_routes(app)
-
+    register_error_handlers(app)
+    
     return app
 
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///chama.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
+    CSRF_SECRET_KEY = os.getenv('CSRF_SECRET_KEY', 'dev-csrf-key')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-jwt-key')
+
 def register_routes(app):
-    from models import User, Member, Group, Loan, Contribution
+    from models import User, Member, Group, Loan, Contribution, Investment
+    
+    # Utility functions
+    def paginate(query):
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 10, type=int), 100)
+        return query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Decorators
-    def login_required(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if 'user_id' not in session:
-                return jsonify({"error": "Authentication required"}), 401
-            return f(*args, **kwargs)
-        return decorated
-
-    def admin_required(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            user = User.query.get(session.get('user_id'))
-            if not user or user.role != "Admin":
-                return jsonify({"error": "Admin access required"}), 403
-            return f(*args, **kwargs)
-        return decorated
+    def login_required(roles=None):
+        def decorator(f):
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                if 'user_id' not in session:
+                    raise Unauthorized("Authentication required")
+                
+                user = User.query.get(session['user_id'])
+                if not user or not user.is_active:
+                    raise Unauthorized("Invalid user")
+                
+                if roles and user.role not in roles:
+                    raise Forbidden("Insufficient permissions")
+                
+                return f(*args, **kwargs)
+            return decorated
+        return decorator
 
     # Authentication Routes
-    @app.route('/register', methods=['POST'])
+    @app.route('/api/auth/register', methods=['POST'])
     def register():
         data = request.get_json()
-        if User.query.filter_by(username=data['username']).first():
-            return jsonify({"error": "Username already exists"}), 400
-        hashed_pw = generate_password_hash(data['password'])
-        user = User(username=data['username'], email=data['email'], password=hashed_pw, role=data.get('role', 'User'))
+        required_fields = ['username', 'email', 'password']
+        if not all(field in data for field in required_fields):
+            raise BadRequest("Missing required fields")
+        
+        if User.query.filter((User.username == data['username']) | (User.email == data['email'])).first():
+            raise BadRequest("Username or email already exists")
+        
+        user = User(
+            username=data['username'],
+            email=data['email'],
+            role=data.get('role', 'Member')
+        )
+        user.set_password(data['password'])
         db.session.add(user)
         db.session.commit()
+        
         return jsonify(user.serialize()), 201
 
-    @app.route('/login', methods=['POST'])
+    @app.route('/api/auth/login', methods=['POST'])
     def login():
         data = request.get_json()
-        user = User.query.filter_by(username=data['username']).first()
-        if user and check_password_hash(user.password, data['password']):
-            session['user_id'] = user.id
-            return jsonify({"message": "Login successful", "user": user.serialize()}), 200
-        return jsonify({"error": "Invalid credentials"}), 401
+        user = User.query.filter_by(username=data.get('username')).first()
+        
+        if not user or not user.check_password(data.get('password', '')):
+            raise Unauthorized("Invalid credentials")
+        
+        session['user_id'] = user.id
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Login successful",
+            "user": user.serialize()
+        }), 200
 
-    @app.route('/logout', methods=['POST'])
-    @login_required
+    @app.route('/api/auth/logout', methods=['POST'])
+    @login_required()
     def logout():
         session.clear()
         return jsonify({"message": "Logged out"}), 200
 
     # User Routes
-    @app.route('/users', methods=['GET'])
-    @admin_required
-    def get_users():
-        users = User.query.all()
-        return jsonify([u.serialize() for u in users]), 200
+    @app.route('/api/users/me', methods=['GET'])
+    @login_required()
+    def get_current_user():
+        user = User.query.get(session['user_id'])
+        return jsonify(user.serialize()), 200
 
-    @app.route('/users/<int:id>', methods=['GET'])
-    @login_required
+    @app.route('/api/users/<int:id>', methods=['GET'])
+    @login_required(roles=['Admin'])
     def get_user(id):
         user = User.query.get_or_404(id)
         return jsonify(user.serialize()), 200
 
     # Member Routes
-    @app.route('/members', methods=['GET'])
-    @login_required
+    @app.route('/api/members', methods=['GET'])
+    @login_required()
     def get_members():
-        members = Member.query.all()
-        return jsonify([m.serialize() for m in members]), 200
+        query = Member.query
+        if request.args.get('active'):
+            query = query.filter_by(status='Active')
+        pagination = paginate(query)
+        
+        return jsonify({
+            'items': [m.serialize() for m in pagination.items],
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'page': pagination.page
+        }), 200
 
-    @app.route('/members/<int:id>', methods=['GET'])
-    @login_required
-    def get_member(id):
-        member = Member.query.get_or_404(id)
-        return jsonify(member.serialize()), 200
-
-    @app.route('/members', methods=['POST'])
-    @admin_required
-    def create_member():
-        data = request.get_json()
-        member = Member(name=data['name'], email=data['email'], phone=data['phone'])
-        db.session.add(member)
-        db.session.commit()
-        return jsonify(member.serialize()), 201
-
-    @app.route('/members/<int:id>', methods=['PUT'])
-    @admin_required
-    def update_member(id):
-        member = Member.query.get_or_404(id)
-        data = request.get_json()
-        member.name = data.get('name', member.name)
-        member.email = data.get('email', member.email)
-        member.phone = data.get('phone', member.phone)
-        db.session.commit()
-        return jsonify(member.serialize()), 200
-
-    @app.route('/members/<int:id>', methods=['DELETE'])
-    @admin_required
-    def delete_member(id):
-        member = Member.query.get_or_404(id)
-        db.session.delete(member)
-        db.session.commit()
-        return jsonify({"message": "Member deleted"}), 200
-
-    # Group Routes
+ # Group Routes
     @app.route('/groups', methods=['GET'])
     @login_required
     def get_groups():
@@ -295,8 +301,36 @@ def contribution_dashboard():
         "recent_contributions": [c.serialize() for c in recent_contributions]
     }), 200
     
-# Run the application
+    # Health Check
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        try:
+            db.session.execute('SELECT 1')
+            return jsonify({"status": "healthy"}), 200
+        except Exception as e:
+            return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+def register_error_handlers(app):
+    @app.errorhandler(BadRequest)
+    def handle_bad_request(e):
+        return jsonify({"error": str(e)}), 400
+
+    @app.errorhandler(Unauthorized)
+    def handle_unauthorized(e):
+        return jsonify({"error": str(e)}), 401
+
+    @app.errorhandler(Forbidden)
+    def handle_forbidden(e):
+        return jsonify({"error": str(e)}), 403
+
+    @app.errorhandler(404)
+    def handle_not_found(e):
+        return jsonify({"error": "Resource not found"}), 404
+
+    @app.errorhandler(500)
+    def handle_server_error(e):
+        return jsonify({"error": "Internal server error"}), 500
+
 if __name__ == '__main__':
     app = create_app()
     app.run(port=5555, debug=True)
-    
