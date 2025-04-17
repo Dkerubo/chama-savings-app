@@ -1,6 +1,8 @@
+# app/models/loan.py
+
 from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
-from database import db
+from ..extensions import db
 
 class Loan(db.Model, SerializerMixin):
     __tablename__ = 'loans'
@@ -25,11 +27,16 @@ class Loan(db.Model, SerializerMixin):
     member = db.relationship('Member', foreign_keys=[member_id], back_populates='loans')
     group = db.relationship('Group', back_populates='loans')
     guarantor = db.relationship('Member', foreign_keys=[guarantor_id])
-    repayments = db.relationship('LoanRepayment', back_populates='loan', cascade='all, delete-orphan')
     approved_by = db.relationship('User')
+    repayments = db.relationship('LoanRepayment', back_populates='loan', cascade='all, delete-orphan')
 
-    serialize_rules = ('-member.loans', '-group.loans', '-guarantor.loans', 
-                      '-repayments.loan', '-approved_by.member')
+    serialize_rules = (
+        '-member.loans', 
+        '-group.loans', 
+        '-guarantor.loans', 
+        '-repayments.loan', 
+        '-approved_by.member'
+    )
 
     def calculate_repayment(self):
         interest = self.amount * (self.interest_rate / 100)

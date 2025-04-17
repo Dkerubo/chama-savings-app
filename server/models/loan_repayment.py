@@ -1,5 +1,7 @@
+# app/models/loan_repayment.py
+
 from sqlalchemy_serializer import SerializerMixin
-from database import db
+from ..extensions import db
 
 class LoanRepayment(db.Model, SerializerMixin):
     __tablename__ = 'loan_repayments'
@@ -11,10 +13,8 @@ class LoanRepayment(db.Model, SerializerMixin):
     receipt_number = db.Column(db.String(50))
     notes = db.Column(db.Text)
 
-    # Foreign Key
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id'), nullable=False)
-    
-    # Relationship
+
     loan = db.relationship('Loan', back_populates='repayments')
 
     serialize_rules = ('-loan.repayments',)

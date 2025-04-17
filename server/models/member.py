@@ -2,6 +2,7 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.sql import func
 from database import db
 
+# Association table for Member <-> Group many-to-many relationship
 member_group = db.Table(
     'member_group',
     db.Column('member_id', db.Integer, db.ForeignKey('members.id'), primary_key=True),
@@ -32,8 +33,10 @@ class Member(db.Model, SerializerMixin):
     contributions = db.relationship('Contribution', back_populates='member', cascade='all, delete-orphan')
     approved_investments = db.relationship('Investment', back_populates='approved_by')
 
-    serialize_rules = ('-user.member', '-groups.members', '-loans.member', 
-                      '-contributions.member', '-approved_investments.approved_by')
+    serialize_rules = (
+        '-user.member', '-groups.members', '-loans.member', 
+        '-contributions.member', '-approved_investments.approved_by'
+    )
 
     def get_total_contributions(self):
         return sum(c.amount for c in self.contributions)
@@ -44,8 +47,7 @@ class Member(db.Model, SerializerMixin):
     def get_loan_balance(self):
         return sum(
             loan.amount - sum(r.amount for r in loan.repayments)
-            for loan in self.loans
-            if loan.status == 'Active'
+            for loan in self.loans if loan.status == 'Active'
         )
 
     def get_net_worth(self):

@@ -1,32 +1,31 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail
+from flask_cors import CORS
 from flask_migrate import Migrate
-from .app import create_app
-from .extensions import db
+from config import config
 
 # Initialize extensions
 db = SQLAlchemy()
+mail = Mail()
 migrate = Migrate()
 
-def create_app():
-    """Application factory function"""
+def create_app(config_name='default'):
     app = Flask(__name__)
-    
-    # Load configuration
-    app.config.from_object('config.Config')
-    
-    # Initialize extensions with app
-    db.init_app(app)
-    migrate.init_app(app, db)
-    
-    # Register blueprints and models
-    with app.app_context():
-        from . import routes
-        from . import models
-        
-        # Create database tables
-        db.create_all()
-    
-    return app
 
-__all__ = ['create_app', 'db']
+    # Apply configuration
+    app_config = config[config_name]
+    app.config.from_object(app_config)
+    app_config.init_app(app)
+
+    # Initialize extensions
+    db.init_app(app)
+    mail.init_app(app)
+    migrate.init_app(app, db)
+    CORS(app, supports_credentials=app.config['CORS_SUPPORTS_CREDENTIALS'], origins=app.config['CORS_ORIGINS'])
+
+    # Register blueprints or routes
+    from .views import main as main_blueprint
+    app.register_blueprint(main_blueprint)
+
+    return app
