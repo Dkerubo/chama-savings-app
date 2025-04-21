@@ -1,93 +1,98 @@
-#!/usr/bin/env python3
-
-from server.app import create_app
-from server.extensions import db
-from server.models import Member, Group, Loan, Contribution, User
+#from app import create_app
+from database import db
+from models import User, Member, Group, Loan, Contribution, Investment, LoanRepayment
 from faker import Faker
 import random as rc
 from werkzeug.security import generate_password_hash
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 fake = Faker()
 app = create_app()
 
 with app.app_context():
     # Clear existing data
+    print("\n🧹 Clearing existing database records...")
     Contribution.query.delete()
     Loan.query.delete()
+    User.query.delete()
     Member.query.delete()
     Group.query.delete()
-    User.query.delete()
 
     # Seed Groups
-    groups = []
-    group_names = ["Umoja Savings", "Harambee Investors", "Twende Pamoja", "Mali Safi", "Faida Group"]
-    for name in group_names:
-        group = Group(
+    print("🌱 Seeding groups...")
+    group_names = [
+        "Umoja Savings", "Harambee Investors", "Twende Pamoja", 
+        "Mali Safi", "Faida Group"
+    ]
+    groups = [
+        Group(
             name=name,
             created_at=fake.date_time_between(start_date='-1y', end_date='now'),
             monthly_target=rc.randint(5000, 20000)
         )
-        groups.append(group)
-
+        for name in group_names
+    ]
     db.session.add_all(groups)
     db.session.commit()
 
     # Seed Members
+    print("🌱 Seeding members...")
     members = []
-    for i in range(20):
+    for _ in range(20):
         member = Member(
             name=fake.name(),
             email=fake.unique.email(),
             phone=fake.unique.phone_number(),
             joined_date=fake.date_time_between(start_date='-1y', end_date='now'),
-            status=rc.choice(["Active", "Inactive", "Suspended"])
+            status=rc.choice(["Active", "Inactive", "Suspended"]),
+            balance=round(rc.uniform(0, 50000), 2)
         )
-        # Assign members to random groups
-        for _ in range(rc.randint(1, 3)):
-            member.groups.append(rc.choice(groups))
+        # Assign member to 1–2 random groups
+        for _ in range(rc.randint(1, 2)):
+            group = rc.choice(groups)
+            if group not in member.groups:
+                member.groups.append(group)
         members.append(member)
 
     db.session.add_all(members)
     db.session.commit()
 
     # Seed Loans
+    print("🌱 Seeding loans...")
     loans = []
-    for i in range(15):
+    for _ in range(15):
         issue_date = fake.date_time_between(start_date='-11m', end_date='-1m')
         due_date = issue_date + timedelta(days=rc.randint(30, 180))
-        status = rc.choice(["Active", "Paid", "Defaulted", "Pending"])
-        
-        loan = Loan(
+        loans.append(Loan(
             amount=rc.randint(1000, 50000),
-            interest_rate=rc.uniform(5.0, 15.0),
+            interest_rate=round(rc.uniform(5.0, 15.0), 2),
             issue_date=issue_date,
             due_date=due_date,
-            status=status,
+            status=rc.choice(["Active", "Paid", "Defaulted", "Pending"]),
             member_id=rc.choice(members).id,
             group_id=rc.choice(groups).id
-        )
-        loans.append(loan)
+        ))
 
     db.session.add_all(loans)
     db.session.commit()
 
     # Seed Contributions
-    contributions = []
-    for i in range(100):
-        contribution = Contribution(
+    print("🌱 Seeding contributions...")
+    contributions = [
+        Contribution(
             amount=rc.randint(500, 10000),
             date=fake.date_time_between(start_date='-1y', end_date='now'),
             payment_method=rc.choice(["M-Pesa", "Bank Transfer", "Cash"]),
             member_id=rc.choice(members).id,
             group_id=rc.choice(groups).id
         )
-        contributions.append(contribution)
-
+        for _ in range(100)
+    ]
     db.session.add_all(contributions)
     db.session.commit()
 
-    # Seed Users (Admin and Regular Users)
+    # Seed Users
+    print("🌱 Seeding users...")
     users = [
         User(
             username="admin",
@@ -103,24 +108,24 @@ with app.app_context():
             role="Treasurer",
             member_id=None
         ),
-        *[
-            User(
-                username=member.email.split('@')[0],
-                email=member.email,
-                password_hash=generate_password_hash("member123"),
-                role="Member",
-                member_id=member.id
-            )
-            for member in members[:5]  # Create user accounts for first 5 members
-        ]
     ]
+
+    for member in members:
+        users.append(User(
+            username=member.email.split('@')[0],
+            email=member.email,
+            password_hash=generate_password_hash("member123"),
+            role="Member",
+            member_id=member.id
+        ))
 
     db.session.add_all(users)
     db.session.commit()
 
-    print("Chama database seeded successfully with:")
-    print(f"- {len(groups)} groups")
-    print(f"- {len(members)} members")
-    print(f"- {len(loans)} loans")
-    print(f"- {len(contributions)} contributions")
-    print(f"- {len(users)} users")
+    # Final Summary
+    print("\n✅ Database seeded successfully!")
+    print(f"📊 Groups: {len(groups)}")
+    print(f"👥 Members: {len(members)}")
+    print(f"💸 Loans: {len(loans)}")
+    print(f"💰 Contributions: {len(contributions)}")
+    print(f"🔐 Users: {len(users)}\n")

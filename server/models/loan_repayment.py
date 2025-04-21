@@ -1,7 +1,5 @@
-# app/models/loan_repayment.py
-
 from sqlalchemy_serializer import SerializerMixin
-from ..extensions import db
+from database import db
 
 class LoanRepayment(db.Model, SerializerMixin):
     __tablename__ = 'loan_repayments'

@@ -1,5 +1,6 @@
+# Import and register models
 from .user import User
-from .member import Member, member_group
+from .member import Member
 from .group import Group
 from .loan import Loan
 from .contribution import Contribution

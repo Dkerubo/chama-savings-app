@@ -1,8 +1,6 @@
-# app/models/loan.py
-
 from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
-from ..extensions import db
+from database import db
 
 class Loan(db.Model, SerializerMixin):
     __tablename__ = 'loans'

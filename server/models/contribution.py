@@ -1,7 +1,5 @@
-# app/models/contribution.py
-
 from sqlalchemy_serializer import SerializerMixin
-from ..extensions import db
+from database import db
 
 class Contribution(db.Model, SerializerMixin):
     __tablename__ = 'contributions'
