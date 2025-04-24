@@ -1,5 +1,17 @@
-/* Reset or minimal styles */
-body {
-  margin: 0;
-  font-family: sans-serif;
-}
+:root {
+    --primary: #4CAF50; /* Green */
+    --secondary: #FFC107; /* Yellow */
+    --background: #f4f4f4;
+    --text-color: #333;
+  }
+  
+  body {
+    background-color: var(--background);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+  }
+  
+  h1, h2, h3 {
+    color: var(--primary);
+  }
+  

@@ -1,5 +1,6 @@
 # Chama App
 
+
 ## Project Idea
 A digital chama (group saving platform) to manage group savings, contributions, loans, and transactions.
 
