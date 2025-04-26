@@ -1,59 +1,87 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginStart, loginSuccess, loginFailure } from '../redux/slices/authSlice';
+import authService from '../api/auth';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import Alert from '../components/common/Alert';
 
-export default function Login() {
-  const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = async e => {
+const Login = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+  });
+  
+  const { isLoading, isError, message } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     try {
-      await login(username, password);
-    } catch {
-      setError('Invalid credentials');
+      dispatch(loginStart());
+      const userData = await authService.login(formData);
+      dispatch(loginSuccess(userData.user));
+      navigate('/');
+    } catch (error) {
+      dispatch(loginFailure(error.response?.data?.error || 'Login failed'));
     }
   };
-
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-     <form
-  onSubmit={handleSubmit}
-  className="bg-white p-8 rounded shadow w-full max-w-md mx-auto mt-12"
->
-  <h2 className="text-2xl font-bold text-primary mb-6 text-center">Login</h2>
-  {error && (
-    <p className="text-red-500 text-sm mb-4">{error}</p>
-  )}
-  <div className="mb-4">
-    <label className="block text-sm font-medium">Username</label>
-    <input
-      type="text"
-      className="mt-1 block w-full border-gray-300 rounded p-2"
-      value={username}
-      onChange={e => setUsername(e.target.value)}
-      required
-    />
-  </div>
-  <div className="mb-6">
-    <label className="block text-sm font-medium">Password</label>
-    <input
-      type="password"
-      className="mt-1 block w-full border-gray-300 rounded p-2"
-      value={password}
-      onChange={e => setPassword(e.target.value)}
-      required
-    />
-  </div>
-  <button
-    type="submit"
-    className="w-full py-2 bg-primary text-white rounded hover:bg-green-700"
-  >
-    Sign In
-  </button>
-</form>
-
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+        </div>
+        
+        {isError && <Alert type="error" message={message} />}
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm space-y-4">
+            <Input
+              label="Username"
+              name="username"
+              type="text"
+              required
+              value={formData.username}
+              onChange={handleChange}
+            />
+            
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+            />
+          </div>
+          
+          <div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
-}
+};
+
+export default Login;

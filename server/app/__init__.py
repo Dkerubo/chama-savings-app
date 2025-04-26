@@ -1,39 +1,49 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
-from dotenv import load_dotenv
-import os
+# app/__init__.py
 
-db = SQLAlchemy()
-migrate = Migrate()
-jwt = JWTManager()
+from flask import Flask
+from dotenv import load_dotenv
+from app.extensions import db, migrate
+from flask_jwt_extended import JWTManager
+from app.errors import register_error_handlers
+from flask_socketio import SocketIO
 
 def create_app():
     load_dotenv()
+
     app = Flask(__name__)
     app.config.from_object("app.config.Config")
-
+    socketio = SocketIO(app, cors_allowed_origins="*")  # allow cross-origin if needed
+    
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    jwt.init_app(app)
+    jwt = JWTManager(app)
 
-    # Import blueprints *after* app and extensions are initialized
-    from app.routes.auth_routes import auth_bp
-    from app.routes.group_routes import group_bp
+    # Import models to register them with SQLAlchemy
+    from app.models import user, member, group, contribution, loan, loan_repayment, investment, investment_payment, notification
+
+    # Import and register blueprints
+    from app.routes.auth import auth_bp
+    from app.routes.group import group_bp
+    from app.routes.user import user_bp
     from app.routes.member_routes import member_bp
     from app.routes.contribution_routes import contribution_bp
     from app.routes.loan_routes import loan_bp
     from app.routes.investment_routes import investment_bp
     from app.routes.investment_payment_routes import payment_bp
+    from app.routes.notification import notification_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(group_bp, url_prefix='/api')
-    app.register_blueprint(member_bp, url_prefix='/api')
-    app.register_blueprint(contribution_bp, url_prefix='/api')
-    app.register_blueprint(loan_bp, url_prefix='/api')
-    app.register_blueprint(investment_bp, url_prefix='/api')
+    app.register_blueprint(user_bp, url_prefix='/api/users')
+    app.register_blueprint(group_bp, url_prefix='/api/groups')
+    app.register_blueprint(member_bp, url_prefix='/api/members')
+    app.register_blueprint(contribution_bp, url_prefix='/api/contributions')
+    app.register_blueprint(loan_bp, url_prefix='/api/loans')
+    app.register_blueprint(investment_bp, url_prefix='/api/investments')
     app.register_blueprint(payment_bp, url_prefix='/api')
+    app.register_blueprint(notification_bp, url_prefix='/api/notifications')
 
-    from app.models import user, member, group, contribution, loan, loan_repayment, investment
+    # Register error handlers
+    register_error_handlers(app)
+
     return app
