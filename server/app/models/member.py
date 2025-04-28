@@ -19,7 +19,7 @@ class Member(db.Model):
     user = db.relationship('User', back_populates='memberships')
     group = db.relationship('Group', back_populates='members')
     contributions = db.relationship('Contribution', back_populates='member', cascade='all, delete-orphan')
-    loans = db.relationship('Loan', back_populates='member', cascade='all, delete-orphan')
+    loans = db.relationship("Loan", back_populates="member", foreign_keys="[Loan.member_id]")
     investments = db.relationship('Investment', back_populates='member', cascade='all, delete-orphan')
     guaranteed_loans = db.relationship('Loan',  # Loans this member has guaranteed
                                     foreign_keys='Loan.guarantor_id',

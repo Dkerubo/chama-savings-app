@@ -24,6 +24,7 @@ class Loan(db.Model):
     guarantor_id = db.Column(db.Integer, db.ForeignKey('members.id'))  # Optional guarantor
     
     # Relationships
+    member = db.relationship("Member", back_populates="loans", foreign_keys=[member_id])
     member = db.relationship('Member', foreign_keys=[member_id], back_populates='loans')
     group = db.relationship('Group', back_populates='loans')
     repayments = db.relationship('LoanRepayment', back_populates='loan', cascade='all, delete-orphan')

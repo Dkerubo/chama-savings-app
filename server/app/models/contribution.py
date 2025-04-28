@@ -1,6 +1,7 @@
 from datetime import datetime
 from app.extensions import db
 from sqlalchemy import event
+from sqlalchemy.orm import validates
 
 class Contribution(db.Model):
     __tablename__ = 'contributions'
@@ -11,19 +12,30 @@ class Contribution(db.Model):
     amount = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255))
     date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    status = db.Column(db.String(20), default='pending', nullable=False)  # 'pending', 'confirmed', 'rejected'
+    status = db.Column(db.String(50), default='pending', nullable=False)  # 'pending', 'confirmed', 'rejected'
     receipt_number = db.Column(db.String(50), unique=True)
+    
 
     # Relationships
     member = db.relationship('Member', back_populates='contributions')
     group = db.relationship('Group', back_populates='contributions')
     
-    def __init__(self, member_id, group_id, amount, note=None, receipt_number=None):
+    @validates('status')
+    def validate_status(self, key, status):
+        """Validate status value."""
+        valid_statuses = ['pending', 'confirmed', 'rejected']
+        if status not in valid_statuses:
+            raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
+        return status
+    
+    def __init__(self, member_id, group_id, amount, note=None, receipt_number=None, status='pending'):
+        """Initialize a new Contribution object."""
         self.member_id = member_id
         self.group_id = group_id
         self.amount = amount
-        self.note = note
         self.receipt_number = receipt_number
+        self.note = note
+        self.status = status
     
     def serialize(self):
         """Return object data in easily serializable format."""
@@ -52,7 +64,7 @@ class Contribution(db.Model):
     def __repr__(self):
         return f'<Contribution {self.amount} (ID: {self.id}) by Member {self.member_id}>'
 
-# Event listener
+# Event listener to trigger after a new contribution is inserted
 @event.listens_for(Contribution, 'after_insert')
 def after_contribution_insert(mapper, connection, target):
     """Triggered after a new contribution is inserted."""

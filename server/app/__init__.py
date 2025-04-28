@@ -1,8 +1,6 @@
-# app/__init__.py
-
 from flask import Flask
 from dotenv import load_dotenv
-from app.extensions import db, migrate
+from app.extensions import db, migrate, socketio
 from flask_jwt_extended import JWTManager
 from app.errors import register_error_handlers
 from flask_socketio import SocketIO

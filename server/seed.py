@@ -1,251 +1,233 @@
-import random
-from datetime import datetime, timedelta
-from app import create_app
+import uuid
+import time
+from datetime import datetime, timedelta, UTC
+from decimal import Decimal
 from app.extensions import db
-from app.models import (
-    User, Group, Member, Contribution, 
-    Loan, LoanRepayment, Investment, 
-    Notification, NotificationType
-)
+from app.models.user import User
+from app.models.group import Group
+from app.models.member import Member
+from app.models.contribution import Contribution
+from app.models.loan import Loan
+from app.models.loan_repayment import LoanRepayment
+from app.models.notification import Notification, NotificationType
+from app import create_app
 
+# Create the Flask application
 app = create_app()
+
+# Disable socketio for seeding
+app.config['DISABLE_SOCKETIO'] = True
+
+def generate_unique_receipt_number():
+    return f"RC-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
 
 def seed_users():
     print("Seeding users...")
     users = [
-        User(
-            username="admin",
-            email="admin@chama.com",
-            password="AdminPass123",
-            role="admin",
-            phone_number="+254700000000"
-        ),
-        User(
-            username="treasurer",
-            email="treasurer@chama.com",
-            password="TreasurerPass123",
-            role="admin",
-            phone_number="+254711111111"
-        ),
-        User(
-            username="member1",
-            email="member1@chama.com",
-            password="MemberPass123",
-            phone_number="+254722222222"
-        ),
-        User(
-            username="member2",
-            email="member2@chama.com",
-            password="MemberPass123",
-            phone_number="+254733333333"
-        ),
-        User(
-            username="member3",
-            email="member3@chama.com",
-            password="MemberPass123",
-            phone_number="+254744444444"
-        )
+        {"username": "superadmin", "email": "superadmin@chama.com", "password": "Admin@1234", "role": "superadmin", "phone_number": "254712345678"},
+        {"username": "admin", "email": "admin@chama.com", "password": "Admin@1234", "role": "admin", "phone_number": "254712345679"},
+        {"username": "member1", "email": "member1@chama.com", "password": "Member@123", "role": "member", "phone_number": "254712345670"},
+        {"username": "member2", "email": "member2@chama.com", "password": "Member@123", "role": "member", "phone_number": "254712345671"},
+        {"username": "member3", "email": "member3@chama.com", "password": "Member@123", "role": "member", "phone_number": "254712345672"},
     ]
-    db.session.add_all(users)
-    db.session.commit()
-    return users
+    
+    for user_data in users:
+        try:
+            new_user = User(
+                username=user_data['username'],
+                email=user_data['email'],
+                password=user_data['password'],
+                role=user_data['role'],
+                phone_number=user_data['phone_number']
+            )
+            db.session.add(new_user)
+            print(f"Created user: {new_user.username}")
+        except Exception as e:
+            print(f"Error creating user {user_data['username']}: {str(e)}")
+            db.session.rollback()
 
-def seed_groups(users):
+    db.session.commit()
+
+def seed_groups():
     print("Seeding groups...")
     groups = [
-        Group(
-            name="Family Savings",
-            admin_id=users[0].id,
-            target_amount=500000,
-            description="Family investment pool",
-            is_public=True,
-            meeting_schedule="Every Sunday at 2 PM",
-            location="Family Home"
-        ),
-        Group(
-            name="Business Partners",
-            admin_id=users[1].id,
-            target_amount=1000000,
-            description="Business investment group",
-            is_public=False,
-            meeting_schedule="1st Monday of the month",
-            location="Office Boardroom"
-        )
+        {"name": "Family Savings", "admin_id": 1, "target_amount": 1000000, "description": "Family savings group"},
+        {"name": "Business Partners", "admin_id": 2, "target_amount": 2000000, "description": "Business investment group"}
     ]
-    db.session.add_all(groups)
-    db.session.commit()
-    return groups
 
-def seed_members(users, groups):
+    for group_data in groups:
+        try:
+            new_group = Group(
+                name=group_data['name'],
+                admin_id=group_data['admin_id'],
+                target_amount=Decimal(group_data['target_amount']),
+                description=group_data['description']
+            )
+            db.session.add(new_group)
+            print(f"Created group: {new_group.name}")
+        except Exception as e:
+            print(f"Error creating group {group_data['name']}: {str(e)}")
+            db.session.rollback()
+
+    db.session.commit()
+
+def seed_members():
     print("Seeding members...")
-    members = []
-    
-    # Admin is member of all groups
-    for group in groups:
-        members.append(Member(
-            user_id=users[0].id,
-            group_id=group.id,
-            is_admin=True,
-            status='active'
-        ))
-    
-    # Other members
-    members.extend([
-        Member(
-            user_id=users[2].id,
-            group_id=groups[0].id,
-            status='active'
-        ),
-        Member(
-            user_id=users[3].id,
-            group_id=groups[0].id,
-            status='active'
-        ),
-        Member(
-            user_id=users[4].id,
-            group_id=groups[1].id,
-            status='pending'
-        )
-    ])
-    
-    db.session.add_all(members)
-    db.session.commit()
-    return members
+    memberships = [
+        (1, 1, True),
+        (2, 2, True),
+        (3, 1, False),
+        (4, 1, False),
+        (5, 2, False),
+    ]
 
-def seed_contributions(members, groups):
+    for user_id, group_id, is_admin in memberships:
+        try:
+            new_member = Member(
+                user_id=user_id,
+                group_id=group_id,
+                is_admin=is_admin,
+                status='active'
+            )
+            db.session.add(new_member)
+            print(f"Added member: User {user_id} to Group {group_id}")
+        except Exception as e:
+            print(f"Error adding member: {str(e)}")
+            db.session.rollback()
+
+    db.session.commit()
+
+def seed_contributions():
     print("Seeding contributions...")
-    contributions = []
-    statuses = ['confirmed', 'pending', 'rejected']
-    
-    for i, member in enumerate(members):
-        for _ in range(random.randint(1, 4)):  # 1-4 contributions per member
-            contributions.append(Contribution(
-                member_id=member.id,
-                group_id=member.group_id,
-                amount=random.randint(1000, 20000),
-                status=statuses[i % len(statuses)],
-                receipt_number=f"RC-{member.id}-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-                note=f"Monthly contribution {_+1}"
-            ))
-    
-    db.session.add_all(contributions)
-    db.session.commit()
-    return contributions
+    contributions = [
+        {"member_id": 3, "group_id": 1, "amount": 10000, "note": "January contribution"},
+        {"member_id": 4, "group_id": 1, "amount": 15000, "note": "January contribution"},
+        {"member_id": 5, "group_id": 2, "amount": 20000, "note": "January contribution"},
+    ]
 
-def seed_loans(members, groups):
+    for contrib_data in contributions:
+        try:
+            new_contrib = Contribution(
+                member_id=contrib_data['member_id'],
+                group_id=contrib_data['group_id'],
+                amount=contrib_data['amount'],
+                note=contrib_data['note'],
+                status='confirmed',
+                receipt_number=generate_unique_receipt_number()
+            )
+            db.session.add(new_contrib)
+            print(f"Added contribution: {contrib_data['amount']} from Member {contrib_data['member_id']}")
+        except Exception as e:
+            print(f"Error adding contribution: {str(e)}")
+            db.session.rollback()
+
+    db.session.commit()
+
+def seed_loans():
     print("Seeding loans...")
-    loans = []
-    
-    for i, member in enumerate(members[:3]):  # First 3 members get loans
-        loan = Loan(
-            member_id=member.id,
-            group_id=member.group_id,
-            amount=random.randint(10000, 50000),
-            term_months=random.randint(3, 12),
-            purpose=f"Loan for {'business' if i % 2 else 'personal'} use",
-            interest_rate=0.1 + (i * 0.02),  # 10%-14% interest
-            status='approved' if i < 2 else 'pending'
-        )
-        loan.set_dates()
-        if loan.status == 'approved':
-            loan.approved_at = datetime.utcnow() - timedelta(days=random.randint(1, 30))
-            loan.approved_by = 1  # Approved by admin
-        
-        loans.append(loan)
-    
-    db.session.add_all(loans)
-    db.session.commit()
-    return loans
+    loans = [
+        {"member_id": 3, "group_id": 1, "amount": 50000, "term_months": 6, "purpose": "Business expansion"},
+        {"member_id": 5, "group_id": 2, "amount": 100000, "term_months": 12, "purpose": "House construction"},
+    ]
 
-def seed_loan_repayments(loans):
+    for loan_data in loans:
+        try:
+            new_loan = Loan(
+                member_id=loan_data['member_id'],
+                group_id=loan_data['group_id'],
+                amount=Decimal(loan_data['amount']),
+                term_months=loan_data['term_months'],
+                purpose=loan_data['purpose'],
+                status='approved',
+                approved_at=datetime.now(UTC),
+                approved_by=1,
+                issue_date=datetime.now(UTC),
+                due_date=datetime.now(UTC) + timedelta(days=30*loan_data['term_months'])
+            )
+            db.session.add(new_loan)
+            print(f"Added loan: {loan_data['amount']} for Member {loan_data['member_id']}")
+        except Exception as e:
+            print(f"Error adding loan: {str(e)}")
+            db.session.rollback()
+
+    db.session.commit()
+
+def seed_loan_repayments():
     print("Seeding loan repayments...")
-    repayments = []
-    
-    for loan in loans:
-        if loan.status == 'approved':
-            for i in range(random.randint(1, 3)):  # 1-3 repayments per loan
-                repayments.append(LoanRepayment(
-                    loan_id=loan.id,
-                    amount=loan.amount / loan.term_months * (i+1),
-                    payment_method=random.choice(['M-Pesa', 'Bank Transfer', 'Cash']),
-                    status='full' if i == loan.term_months - 1 else 'partial',
-                    receipt_number=f"RP-{loan.id}-{i+1}"
-                ))
-    
-    db.session.add_all(repayments)
-    db.session.commit()
-    return repayments
+    repayments = [
+        {"loan_id": 1, "amount": 10000, "payment_method": "M-Pesa"},
+        {"loan_id": 1, "amount": 10000, "payment_method": "M-Pesa"},
+        {"loan_id": 2, "amount": 20000, "payment_method": "Bank Transfer"},
+    ]
 
-def seed_investments(members, groups):
-    print("Seeding investments...")
-    investments = []
-    
-    for i, member in enumerate(members[:3]):  # First 3 members make investments
-        investments.append(Investment(
-            member_id=member.id,
-            group_id=member.group_id,
-            amount=random.randint(5000, 50000),
-            project_name=f"Project {'A' if i % 2 else 'B'}",
-            expected_return=random.uniform(0.1, 0.25),  # 10%-25% expected return
-            maturity_date=datetime.utcnow() + timedelta(days=random.randint(90, 365)),
-            description=f"Investment in {'real estate' if i % 2 else 'agriculture'}",
-            status='active'
-        ))
-    
-    db.session.add_all(investments)
-    db.session.commit()
-    return investments
+    for repayment_data in repayments:
+        try:
+            new_repayment = LoanRepayment(
+                loan_id=repayment_data['loan_id'],
+                amount=repayment_data['amount'],
+                payment_method=repayment_data['payment_method'],
+                receipt_number=generate_unique_receipt_number()
+            )
+            db.session.add(new_repayment)
+            print(f"Added repayment: {repayment_data['amount']} for Loan {repayment_data['loan_id']}")
+        except Exception as e:
+            print(f"Error adding repayment: {str(e)}")
+            db.session.rollback()
 
-def seed_notifications(users):
+    db.session.commit()
+
+def seed_notifications():
     print("Seeding notifications...")
-    notifications = []
-    messages = [
-        "Your contribution has been received",
-        "Loan payment due in 3 days",
-        "New group announcement",
-        "Investment matured",
-        "Meeting reminder"
+    notifications = [
+        {"user_id": 1, "title": "Welcome", "message": "Welcome to the system", "notification_type": NotificationType.SYSTEM},
+        {"user_id": 3, "title": "Contribution", "message": "Your contribution was received", "notification_type": NotificationType.CONTRIBUTION},
+    ]
+
+    for notif_data in notifications:
+        try:
+            new_notif = Notification(
+                user_id=notif_data['user_id'],
+                title=notif_data['title'],
+                message=notif_data['message'],
+                notification_type=notif_data['notification_type'].value
+            )
+            db.session.add(new_notif)
+            print(f"Added notification for User {notif_data['user_id']}")
+        except Exception as e:
+            print(f"Error adding notification: {str(e)}")
+            db.session.rollback()
+
+    db.session.commit()
+
+def clear_data():
+    print("Clearing existing data...")
+    tables = [
+        LoanRepayment, Loan, 
+        Contribution, Member, 
+        Notification, Group, User
     ]
     
-    for user in users:
-        for i in range(random.randint(2, 5)):  # 2-5 notifications per user
-            notifications.append(Notification(
-                user_id=user.id,
-                title=f"Notification {i+1}",
-                message=random.choice(messages),
-                notification_type=random.choice(list(NotificationType)).value,
-                is_read=random.choice([True, False]),
-                priority=random.randint(1, 3)
-            ))
+    for table in tables:
+        try:
+            db.session.query(table).delete()
+            print(f"Cleared {table.__tablename__}")
+        except Exception as e:
+            print(f"Error clearing {table.__tablename__}: {str(e)}")
+            db.session.rollback()
     
-    db.session.add_all(notifications)
     db.session.commit()
-    return notifications
 
-def main():
+def seed_all():
     with app.app_context():
-        print("Starting database seeding...")
-        
-        # Clear existing data
-        print("Clearing existing data...")
-        db.drop_all()
-        db.create_all()
-        
-        # Seed data
-        users = seed_users()
-        groups = seed_groups(users)
-        members = seed_members(users, groups)
-        contributions = seed_contributions(members, groups)
-        loans = seed_loans(members, groups)
-        repayments = seed_loan_repayments(loans)
-        investments = seed_investments(members, groups)
-        notifications = seed_notifications(users)
-        
+        clear_data()
+        seed_users()
+        seed_groups()
+        seed_members()
+        seed_contributions()
+        seed_loans()
+        seed_loan_repayments()
+        seed_notifications()
         print("Database seeding completed successfully!")
-        print(f"Created: {len(users)} users, {len(groups)} groups, {len(members)} members")
-        print(f"         {len(contributions)} contributions, {len(loans)} loans")
-        print(f"         {len(repayments)} repayments, {len(investments)} investments")
-        print(f"         {len(notifications)} notifications")
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    seed_all()

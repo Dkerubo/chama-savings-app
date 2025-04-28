@@ -6,6 +6,7 @@ from .loan import Loan
 from .loan_repayment import LoanRepayment
 from .investment import Investment
 from .notification import Notification
+from .notification_type import NotificationType
 
 # Explicit listing for SQLAlchemy
 __all__ = [
