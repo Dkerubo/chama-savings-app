@@ -30,7 +30,16 @@ def add_member():
     if Member.query.filter_by(user_id=user_id, group_id=group_id).first():
         return jsonify({"error": "User is already a member of this group"}), 409
 
-    member = Member(user_id=user_id, group_id=group_id, phone=phone, address=address)
+    # Check if the group has reached its maximum member count
+    current_members_count = Member.query.filter_by(group_id=group_id).count()
+    if current_members_count >= 30:
+        return jsonify({"error": "Group has reached maximum capacity (30 members)"}), 403
+
+    # Assign admin if this is the first member
+    is_admin = (current_members_count == 0)
+
+    member = Member(user_id=user_id, group_id=group_id, is_admin=is_admin,
+                    phone=phone, address=address)
     db.session.add(member)
     db.session.commit()
 
@@ -65,7 +74,7 @@ def get_member_by_user(user_id):
     return jsonify(member.serialize()), 200
 
 
-# Update a member’s details (group, phone, address)
+# Update a member’s details
 @member_bp.route('/members/<int:id>', methods=['PUT'])
 def update_member(id):
     member = Member.query.get(id)
@@ -77,10 +86,12 @@ def update_member(id):
     phone = data.get('phone')
     address = data.get('address')
 
-    if group_id:
+    if group_id and group_id != member.group_id:
         group = Group.query.get(group_id)
         if not group:
-            return jsonify({"error": "Group not found"}), 404
+            return jsonify({"error": "New group not found"}), 404
+        if Member.query.filter_by(user_id=member.user_id, group_id=group_id).first():
+            return jsonify({"error": "User is already a member of the new group"}), 409
         member.group_id = group_id
 
     if phone is not None:
@@ -101,6 +112,11 @@ def delete_member(id):
     member = Member.query.get(id)
     if not member:
         return jsonify({"error": "Member not found"}), 404
+
+    # Prevent deletion if it results in group having less than 4 members
+    group_members_count = Member.query.filter_by(group_id=member.group_id).count()
+    if group_members_count <= 4:
+        return jsonify({"error": "Cannot remove member. Group must have at least 4 members."}), 403
 
     db.session.delete(member)
     db.session.commit()

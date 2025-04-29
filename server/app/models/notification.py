@@ -3,7 +3,6 @@ from enum import Enum
 from flask import current_app
 from sqlalchemy import event, func
 from .notification_type import NotificationType
-
 from app.extensions import db, socketio
 
 
@@ -72,7 +71,7 @@ class Notification(db.Model):
             setattr(self, key, value)
 
     def mark_as_read(self):
-        """Mark the notification as read with current timestamp."""
+        """Mark the notification as read with the current timestamp."""
         if not self.is_read:
             self.is_read = True
             self.read_at = datetime.utcnow()
@@ -95,7 +94,7 @@ class Notification(db.Model):
         }
 
     def get_time_ago(self):
-        """Get human-readable time since notification was created."""
+        """Get human-readable time since the notification was created."""
         delta = datetime.utcnow() - self.created_at
         
         if delta.days > 0:
@@ -157,7 +156,7 @@ def _emit_notification(target):
             'new_notification', 
             data, 
             namespace='/notifications',
-            to=f'user_{target.user_id}'  # Send only to specific user
+            to=f'user_{target.user_id}'  # Send only to the specific user
         )
     except Exception as e:
         current_app.logger.error(f"Failed to emit notification: {str(e)}")
@@ -165,14 +164,14 @@ def _emit_notification(target):
 
 @event.listens_for(Notification, 'after_insert')
 def emit_notification_after_insert(mapper, connection, target):
-    """Emit socket.io event when new notification is created."""
+    """Emit socket.io event when a new notification is created."""
     _emit_notification(target)
     current_app.logger.info(f"New notification for user {target.user_id}")
 
 
 @event.listens_for(Notification, 'before_update')
 def set_read_at_before_update(mapper, connection, target):
-    """Update read_at timestamp when notification is marked as read."""
+    """Update the read_at timestamp when the notification is marked as read."""
     if target.is_read and not target.read_at:
         target.read_at = datetime.utcnow()
         _emit_notification(target)  # Emit update when read status changes

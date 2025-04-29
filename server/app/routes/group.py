@@ -28,6 +28,7 @@ def get_my_groups():
     groups = []
     for membership in memberships:
         group = Group.query.get(membership.group_id)
+        user = User.query.get(membership.user_id)  # Fetch user info to include in the response
         groups.append({
             'id': group.id,
             'name': group.name,
@@ -36,7 +37,8 @@ def get_my_groups():
             'current_amount': group.current_amount,
             'admin_id': group.admin_id,
             'member_status': membership.status,
-            'is_admin': membership.is_admin
+            'is_admin': membership.is_admin,
+            'user_full_name': f"{user.first_name} {user.last_name}"  # Add user's full name
         })
     
     return jsonify(groups), 200
@@ -47,6 +49,13 @@ def create_group():
     current_user = get_jwt_identity()
     data = request.get_json()
     
+    # Validate input data
+    if 'name' not in data or 'target_amount' not in data:
+        return jsonify({'error': 'Missing required fields (name, target_amount)'}), 400
+    
+    if not isinstance(data['target_amount'], (int, float)) or data['target_amount'] <= 0:
+        return jsonify({'error': 'target_amount must be a positive number'}), 400
+
     group = Group(
         name=data['name'],
         description=data.get('description', ''),

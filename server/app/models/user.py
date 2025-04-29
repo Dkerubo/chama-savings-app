@@ -1,5 +1,3 @@
-# app/models/user.py
-
 from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
@@ -20,7 +18,7 @@ class User(db.Model):
     last_login = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     phone_number = db.Column(db.String(20))
-    profile_picture = db.Column(db.String(255))  # URL to profile picture
+    profile_picture = db.Column(db.String(255))  # Path to uploaded profile picture
 
     # Relationships
     notifications = db.relationship('Notification', back_populates='user', cascade='all, delete-orphan')
@@ -38,7 +36,7 @@ class User(db.Model):
     @validates('username')
     def validate_username(self, key, username):
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
-            raise ValueError('Username must be 3-20 characters long and can only contain letters, numbers, and underscores.')
+            raise ValueError('Username must be 3–20 characters and can only include letters, numbers, and underscores.')
         return username
 
     @validates('email')
@@ -53,6 +51,18 @@ class User(db.Model):
         if role not in valid_roles:
             raise ValueError(f"Invalid role. Must be one of: {', '.join(valid_roles)}.")
         return role
+
+    @validates('phone_number')
+    def validate_phone_number(self, key, phone):
+        if phone and not re.match(r'^(\+?\d{7,15}|0\d{7,10})$', phone):
+            raise ValueError('Invalid phone number format.')
+        return phone
+
+    @validates('profile_picture')
+    def validate_profile_picture(self, key, path):
+        if path and not re.match(r'^\/?(static\/)?uploads\/.*\.(jpg|jpeg|png|gif)$', path, re.IGNORECASE):
+            raise ValueError('Profile picture must be a valid image path (jpg, jpeg, png, gif).')
+        return path
 
     def set_password(self, password):
         if len(password) < 8:
@@ -84,6 +94,7 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'is_active': self.is_active,
+            'profile_picture': self.profile_picture,
             'membership_count': len(self.memberships),
             'admin_group_count': len(self.admin_groups),
         }
@@ -105,7 +116,7 @@ class User(db.Model):
     def __repr__(self):
         return f"<User {self.username} (ID: {self.id}, Role: {self.role})>"
 
-# --- Event listeners ---
+# --- Event Listeners ---
 
 @event.listens_for(User, 'before_insert')
 def validate_user_before_insert(mapper, connection, target):

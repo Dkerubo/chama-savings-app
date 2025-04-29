@@ -1,9 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
-
 from sqlalchemy import event, func
 from sqlalchemy.orm import validates
-
 from app.extensions import db
 
 
@@ -38,6 +36,8 @@ class Group(db.Model):
         self.name = name
         self.admin_id = admin_id
         self.target_amount = target_amount
+        # Automatically set the creator as the admin
+        self.admin_id = admin_id  # Ensures the creator is always set as the admin
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -107,23 +107,27 @@ class Group(db.Model):
         self.status = 'archived'
 
     def add_member(self, user_id, is_admin=False):
-        """Add a new member to the group"""
+        """Add a new member to the group, only allowed for admins"""
         from app.models import User  # Import here to avoid circular import
+
+        # Ensure the user is not already a member of the group
+        existing_member = next((m for m in self.members if m.user_id == user_id), None)
+        if existing_member:
+            raise ValueError("User is already a member of this group")
 
         user = User.query.get(user_id)
         if not user:
             raise ValueError("User does not exist")
 
-        if not any(m for m in self.members if m.user_id == user_id):
-            new_member = Member(
-                user_id=user_id,
-                group_id=self.id,
-                is_admin=is_admin,
-                status='active' if self.is_public else 'pending'
-            )
-            db.session.add(new_member)
-            return new_member
-        return None
+        # Admin can add members, optionally assigning them admin status
+        new_member = Member(
+            user_id=user_id,
+            group_id=self.id,
+            is_admin=is_admin,
+            status='active' if self.is_public else 'pending'
+        )
+        db.session.add(new_member)
+        return new_member
 
     def __repr__(self):
         return f'<Group {self.name} (ID: {self.id}), Admin: {self.admin_id}, Status: {self.status}>'

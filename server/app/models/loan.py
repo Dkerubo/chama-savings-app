@@ -6,7 +6,7 @@ from decimal import Decimal
 
 class Loan(db.Model):
     __tablename__ = 'loans'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer, db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id', ondelete='CASCADE'), nullable=False)
@@ -22,15 +22,14 @@ class Loan(db.Model):
     purpose = db.Column(db.Text)
     balance = db.Column(db.Numeric(12, 2), default=0, nullable=False)  # Remaining balance
     guarantor_id = db.Column(db.Integer, db.ForeignKey('members.id'))  # Optional guarantor
-    
+
     # Relationships
-    member = db.relationship("Member", back_populates="loans", foreign_keys=[member_id])
-    member = db.relationship('Member', foreign_keys=[member_id], back_populates='loans')
+    member = db.relationship('Member', back_populates='loans', foreign_keys=[member_id])
     group = db.relationship('Group', back_populates='loans')
     repayments = db.relationship('LoanRepayment', back_populates='loan', cascade='all, delete-orphan')
     approver = db.relationship('User', foreign_keys=[approved_by])
     guarantor = db.relationship('Member', foreign_keys=[guarantor_id])
-    
+
     def __init__(self, member_id, group_id, amount, term_months, purpose=None, **kwargs):
         self.member_id = member_id
         self.group_id = group_id
@@ -40,7 +39,7 @@ class Loan(db.Model):
         self.purpose = purpose
         for key, value in kwargs.items():
             setattr(self, key, value)
-    
+
     @validates('amount', 'interest_rate')
     def validate_financials(self, key, value):
         """Validate financial fields"""
@@ -49,7 +48,7 @@ class Loan(db.Model):
         if key == 'interest_rate' and (value < 0 or value > 1):
             raise ValueError("Interest rate must be between 0 and 1 (0% to 100%)")
         return value
-    
+
     def serialize(self):
         """Return comprehensive loan data in serializable format"""
         return {
@@ -73,43 +72,40 @@ class Loan(db.Model):
             'progress': self.payment_progress(),
             'guarantor': self.guarantor.user.username if self.guarantor and self.guarantor.user else None
         }
-    
+
     def approve(self, approver_id):
         """Approve the loan application"""
         self.status = 'approved'
         self.approved_at = datetime.utcnow()
         self.approved_by = approver_id
         self.set_dates()
-    
+
     def reject(self):
         """Reject the loan application"""
         self.status = 'rejected'
-    
+
     def set_dates(self):
         """Set issue and due dates based on term"""
         self.issue_date = datetime.utcnow()
         self.due_date = self.issue_date + timedelta(days=30 * self.term_months)
-    
+
     def update_balance(self):
         """Recalculate loan balance from repayments"""
-        total_paid = sum(
-            r.amount for r in self.repayments 
-            if r.status in ['partial', 'full', 'verified']
-        )
+        total_paid = sum(r.amount for r in self.repayments if r.status in ['partial', 'full', 'verified'])
         self.balance = max(Decimal('0'), self.amount - Decimal(str(total_paid)))
-        
+
         # Update status if fully paid
         if self.balance <= 0:
             self.status = 'paid'
         elif datetime.utcnow() > self.due_date and self.status == 'active':
             self.status = 'defaulted'
-    
+
     def payment_progress(self):
         """Calculate payment progress percentage"""
         if self.amount <= 0:
             return 0
         return min(100, float((self.amount - self.balance) / self.amount * 100))
-    
+
     def monthly_payment(self):
         """Calculate monthly payment amount"""
         if self.term_months <= 0:
@@ -119,10 +115,9 @@ class Loan(db.Model):
             (self.amount * monthly_rate * (1 + monthly_rate)**self.term_months) /
             ((1 + monthly_rate)**self.term_months - 1)
         )
-    
+
     def __repr__(self):
-        return (f'<Loan {self.amount} (ID: {self.id}) '
-                f'for Member {self.member_id}, Status: {self.status}>')
+        return f'<Loan {self.amount} (ID: {self.id}) for Member {self.member_id}, Status: {self.status}>'
 
 # Event listeners
 @event.listens_for(Loan, 'after_update')

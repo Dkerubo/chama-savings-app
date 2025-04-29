@@ -1,8 +1,8 @@
+from flask import Flask
+from flask_socketio import SocketIO
 
-from app import create_app
-from app.extensions import socketio
+app = Flask(__name__)
+socketio = SocketIO(app)
 
-app = create_app()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     socketio.run(app, debug=True)

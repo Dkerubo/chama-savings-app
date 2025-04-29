@@ -2,6 +2,7 @@ from datetime import datetime
 from app.extensions import db
 from sqlalchemy import event
 from sqlalchemy.orm import validates
+from sqlalchemy.orm.session import object_session
 
 class Contribution(db.Model):
     __tablename__ = 'contributions'
@@ -14,7 +15,6 @@ class Contribution(db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     status = db.Column(db.String(50), default='pending', nullable=False)  # 'pending', 'confirmed', 'rejected'
     receipt_number = db.Column(db.String(50), unique=True)
-    
 
     # Relationships
     member = db.relationship('Member', back_populates='contributions')
@@ -52,11 +52,10 @@ class Contribution(db.Model):
         }
     
     def confirm(self):
-        """Mark contribution as confirmed and update group's current amount."""
-        self.status = 'confirmed'
-        if self.group:
-            self.group.current_amount += self.amount
-    
+        """Mark contribution as confirmed."""
+        if self.status != 'confirmed':
+            self.status = 'confirmed'
+
     def reject(self):
         """Mark contribution as rejected."""
         self.status = 'rejected'
@@ -64,8 +63,22 @@ class Contribution(db.Model):
     def __repr__(self):
         return f'<Contribution {self.amount} (ID: {self.id}) by Member {self.member_id}>'
 
-# Event listener to trigger after a new contribution is inserted
+
+# Utility: Recalculate group current_amount based on confirmed contributions
+def recalculate_group_amount(group):
+    """Recalculate and update current_amount for a group."""
+    group.current_amount = sum(
+        contrib.amount for contrib in group.contributions if contrib.status == 'confirmed'
+    )
+
+
+# Event listeners for insert/update/delete to keep group's current_amount accurate
 @event.listens_for(Contribution, 'after_insert')
-def after_contribution_insert(mapper, connection, target):
-    """Triggered after a new contribution is inserted."""
-    print(f"New contribution recorded: {target.amount} by member {target.member_id}")
+@event.listens_for(Contribution, 'after_update')
+@event.listens_for(Contribution, 'after_delete')
+def update_group_current_amount(mapper, connection, target):
+    """Keep group's current amount accurate after any contribution change."""
+    session = object_session(target)
+    if target.group:
+        recalculate_group_amount(target.group)
+        session.add(target.group)  # Mark group as changed for commit

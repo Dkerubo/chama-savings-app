@@ -5,7 +5,7 @@ from sqlalchemy.orm import validates
 
 class LoanRepayment(db.Model):
     __tablename__ = 'loan_repayments'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
@@ -19,23 +19,23 @@ class LoanRepayment(db.Model):
     # Relationships
     loan = db.relationship('Loan', back_populates='repayments')
     verifier = db.relationship('User', foreign_keys=[verified_by])
-    
+
     def __init__(self, loan_id, amount, payment_method=None, receipt_number=None, note=None):
         self.loan_id = loan_id
         self.amount = amount
         self.payment_method = payment_method
         self.receipt_number = receipt_number
         self.note = note
-    
+
     @validates('amount')
     def validate_amount(self, key, amount):
-        """Validate that amount is positive"""
+        """Validate that the repayment amount is positive."""
         if amount <= 0:
-            raise ValueError("Repayment amount must be positive")
+            raise ValueError("Repayment amount must be positive.")
         return amount
-    
+
     def serialize(self):
-        """Return comprehensive repayment data in serializable format"""
+        """Return comprehensive repayment data in serializable format."""
         return {
             'id': self.id,
             'loan_id': self.loan_id,
@@ -53,18 +53,18 @@ class LoanRepayment(db.Model):
                 'balance': float(self.loan.balance) if hasattr(self.loan, 'balance') else None
             } if self.loan else None
         }
-    
+
     def mark_as_full(self):
-        """Mark this repayment as fully covering the installment"""
+        """Mark this repayment as fully covering the loan installment."""
         self.status = 'full'
         if self.loan:
             self.loan.update_balance()
-    
+
     def verify(self, user_id):
-        """Mark repayment as verified by admin"""
+        """Mark the repayment as verified by an admin."""
         self.verified_by = user_id
         self.status = 'verified'
-    
+
     def __repr__(self):
         return (f'<LoanRepayment {self.amount} (ID: {self.id}) '
                 f'for Loan {self.loan_id}, Status: {self.status}>')
@@ -72,7 +72,7 @@ class LoanRepayment(db.Model):
 # Event listeners
 @event.listens_for(LoanRepayment, 'after_insert')
 def after_repayment_insert(mapper, connection, target):
-    """Trigger balance update after repayment"""
+    """Trigger balance update after a repayment is inserted."""
     if target.loan:
         target.loan.update_balance()
         print(f"New repayment recorded for Loan {target.loan_id}. New balance: {target.loan.balance}")
