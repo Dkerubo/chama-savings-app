@@ -1,4 +1,4 @@
-from models.recurrence_rules import RecurrenceRule
+from app.models.recurrence_rules import RecurrenceRule
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.member import Member

@@ -18,8 +18,9 @@ def create_app():
     jwt = JWTManager(app)
 
     # Import models to register them with SQLAlchemy
-    from app.models import user, member, group, contribution, loan, loan_repayment, investment, investment_payment, notification, memberships, invitations, action_items, message_threads, goals, recurrence_rules
-
+    from app.models import user, member, group, contribution, loan, loan_repayment, investment, investment_payment, notification, memberships, invitations, action_items, message_threads, goals, recurrence_rules, meetings
+    target_metadata = db.metadata
+    
     # Import and register blueprints
     from app.routes.auth import auth_bp
     from app.routes.group import group_bp
@@ -36,6 +37,7 @@ def create_app():
     from app.routes.messaging_routes import messaging_bp
     from app.routes.goals_routes import goals_bp
     from app.routes.recurrence_routes import recurrence_bp
+    from app.routes.meetings_routes import meetings_bp
 
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -53,7 +55,7 @@ def create_app():
     app.register_blueprint(messaging_bp, url_prefix='/api/messages')
     app.register_blueprint(goals_bp, url_prefix='/api/goals')
     app.register_blueprint(recurrence_bp, url_prefix='/api/recurrence')
-
+    app.register_blueprint(meetings_bp, url_prefix='/api/meetings')
 
     # Register error handlers
     register_error_handlers(app)

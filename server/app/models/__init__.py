@@ -7,6 +7,13 @@ from .loan_repayment import LoanRepayment
 from .investment import Investment
 from .notification import Notification
 from .notification_type import NotificationType
+from .action_items import ActionItem
+from .goals import Goal
+from .invitations import Invitation
+from .memberships import Membership
+from .message_threads import MessageThread
+from .recurrence_rules import RecurrenceRule
+from .meetings import Meeting
 
 # Explicit listing for SQLAlchemy
 __all__ = [

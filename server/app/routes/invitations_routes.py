@@ -1,4 +1,4 @@
-from models.invitations import Invitation, JoinRequest
+from app.models.invitations import Invitation, JoinRequest
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.member import Member

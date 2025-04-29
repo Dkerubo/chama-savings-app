@@ -120,14 +120,14 @@ class Group(db.Model):
             raise ValueError("User does not exist")
 
         # Admin can add members, optionally assigning them admin status
-        new_member = Member(
+            new_member = Member(
             user_id=user_id,
             group_id=self.id,
             is_admin=is_admin,
             status='active' if self.is_public else 'pending'
         )
-        db.session.add(new_member)
-        return new_member
+            db.session.add(new_member)
+            return new_member
 
     def __repr__(self):
         return f'<Group {self.name} (ID: {self.id}), Admin: {self.admin_id}, Status: {self.status}>'

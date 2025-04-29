@@ -1,4 +1,4 @@
-from models.goals import Goal
+from app.models.goals import Goal
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.member import Member

@@ -1,4 +1,4 @@
-from models.message_threads import MessageThread, Comment
+from app.models.message_threads import MessageThread, Comment
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.member import Member

@@ -1,5 +1,5 @@
 
-from models.memberships import Membership, Role
+from app.models.memberships import Membership, Role
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models.member import Member
