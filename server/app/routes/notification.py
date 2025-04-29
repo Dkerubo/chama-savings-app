@@ -1,35 +1,36 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.notification import Notification
-from app.models.user import User
 from app.extensions import db
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 
 notification_bp = Blueprint('notifications', __name__)
 
+# Route to get notifications for the current user with optional filters
 @notification_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_notifications():
     current_user = get_jwt_identity()
     
     try:
-        # Get query parameters for filtering
+        # Get query parameters for filtering and pagination
         is_read = request.args.get('is_read')
         limit = request.args.get('limit', default=20, type=int)
         
+        # Base query for notifications of the current user
         query = Notification.query.filter_by(user_id=current_user['id'])
         
+        # Filter by read/unread status if provided
         if is_read is not None:
             query = query.filter_by(is_read=is_read.lower() == 'true')
         
         query = query.order_by(Notification.created_at.desc())
         
-        if limit > 0:
-            query = query.limit(limit)
+        # Apply limit to the query
+        notifications = query.limit(limit).all()
         
-        notifications = query.all()
-        
+        # Return notifications in a serialized format
         return jsonify([{
             'id': notification.id,
             'message': notification.message,
@@ -38,38 +39,50 @@ def get_notifications():
             'related_entity_type': notification.related_entity_type,
             'related_entity_id': notification.related_entity_id
         } for notification in notifications]), 200
-    except SQLAlchemyError as e:
-        return jsonify({'error': str(e)}), 500
 
+    except SQLAlchemyError as e:
+        # Return error message if there was an issue with the database
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
+# Route to get the unread notification count for the current user
 @notification_bp.route('/unread-count', methods=['GET'])
 @jwt_required()
 def get_unread_count():
     current_user = get_jwt_identity()
     
     try:
-        count = Notification.query.filter_by(
+        # Count unread notifications for the current user
+        unread_count = Notification.query.filter_by(
             user_id=current_user['id'],
             is_read=False
         ).count()
         
-        return jsonify({'count': count}), 200
-    except SQLAlchemyError as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'count': unread_count}), 200
 
+    except SQLAlchemyError as e:
+        # Return error message if there was an issue with the database
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
+# Route to mark a single notification as read
 @notification_bp.route('/<int:notification_id>/mark-read', methods=['PATCH'])
 @jwt_required()
 def mark_notification_read(notification_id):
     current_user = get_jwt_identity()
     
     try:
+        # Retrieve the notification by ID and ensure it's for the current user
         notification = Notification.query.filter_by(
             id=notification_id,
             user_id=current_user['id']
         ).first_or_404()
         
+        # Check if notification is already read
         if notification.is_read:
             return jsonify({'message': 'Notification already marked as read'}), 200
         
+        # Mark the notification as read
         notification.is_read = True
         db.session.commit()
         
@@ -80,17 +93,21 @@ def mark_notification_read(notification_id):
                 'is_read': notification.is_read
             }
         }), 200
+
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
 
+
+# Route to mark all unread notifications as read
 @notification_bp.route('/mark-all-read', methods=['PATCH'])
 @jwt_required()
 def mark_all_notifications_read():
     current_user = get_jwt_identity()
     
     try:
-        updated = Notification.query.filter_by(
+        # Update all unread notifications to read
+        updated_count = Notification.query.filter_by(
             user_id=current_user['id'],
             is_read=False
         ).update({'is_read': True})
@@ -98,13 +115,15 @@ def mark_all_notifications_read():
         db.session.commit()
         
         return jsonify({
-            'message': f'{updated} notifications marked as read'
+            'message': f'{updated_count} notifications marked as read'
         }), 200
+
     except SQLAlchemyError as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
 
-# Helper function to create notifications (can be called from other routes)
+
+# Helper function to create notifications (can be used in other parts of the app)
 def create_notification(user_id, message, related_entity_type=None, related_entity_id=None):
     try:
         notification = Notification(
@@ -117,8 +136,9 @@ def create_notification(user_id, message, related_entity_type=None, related_enti
         db.session.add(notification)
         db.session.commit()
         
-        # In a real app, you might want to emit a WebSocket event here
+        # You may emit an event here (e.g., WebSocket or SocketIO) for real-time notifications
         return notification
+
     except SQLAlchemyError as e:
         db.session.rollback()
         return None
