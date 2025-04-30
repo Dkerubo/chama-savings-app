@@ -1,8 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:5000/api/auth',
-  withCredentials: true,  // optional, only if you're using sessions/cookies
+  baseURL: 'http://localhost:5000/api',
+  withCredentials: true,  // Required for cookies/JWT
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 export default api;
+
+

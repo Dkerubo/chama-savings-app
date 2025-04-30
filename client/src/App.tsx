@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import "./App.scss";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -9,6 +10,24 @@ import Login from "./auth/Login";
 import Register from "./auth/Register";
 
 function App() {
+  // Add this useEffect hook to unregister service workers
+  useEffect(() => {
+    if (import.meta.env.MODE === "development") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then(registrations => {
+            registrations.forEach(registration => {
+              registration.unregister();
+              console.log("ServiceWorker unregistered:", registration.scope);
+            });
+          })
+          .catch(error => {
+            console.error("ServiceWorker unregistration failed:", error);
+          });
+      }
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
   return (
     <Router>
       <div className="flex flex-col min-h-screen w-full">

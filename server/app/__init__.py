@@ -14,7 +14,18 @@ def create_app():
     app.config.from_object("app.config.Config")
     
     # Enable CORS for frontend access with credentials
-    CORS(app, supports_credentials=True, resources={r"/*": {"origins": "http://localhost:5173"}})
+def register_extensions(app):
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": "http://127.0.0.1:5173",
+                "supports_credentials": True,
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"]
+            }
+        }
+    )
 
     # Initialize Flask extensions
     db.init_app(app)
@@ -22,6 +33,8 @@ def create_app():
     jwt = JWTManager(app)
     CORS(app, resources={r"/*": {"origins": "*"}})
     socketio.init_app(app, cors_allowed_origins="*")
+
+
 
     # Import models to register with SQLAlchemy metadata
     from app.models import (

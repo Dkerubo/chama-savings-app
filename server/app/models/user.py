@@ -1,7 +1,7 @@
+from datetime import datetime
 from app.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
-from datetime import datetime
 from sqlalchemy import event, func
 from sqlalchemy.orm import validates
 import re
@@ -14,9 +14,9 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='member')
-    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.now())
     last_login = db.Column(db.DateTime)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
     phone_number = db.Column(db.String(20))
     profile_picture = db.Column(db.String(255))
 
@@ -33,6 +33,7 @@ class User(db.Model):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    # Validation methods
     @validates('username')
     def validate_username(self, key, username):
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
@@ -52,12 +53,7 @@ class User(db.Model):
             raise ValueError(f"Role must be: {', '.join(valid_roles)}")
         return role
 
-    @validates('phone_number')
-    def validate_phone_number(self, key, phone):
-        if phone and not re.match(r'^(\+?\d{7,15}|0\d{7,10})$', phone):
-            raise ValueError('Invalid phone number format')
-        return phone
-
+    # Auth methods
     def set_password(self, password):
         if len(password) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -76,25 +72,30 @@ class User(db.Model):
             claims.update(additional_claims)
         return create_access_token(identity=claims)
 
-    def update_last_login(self):
-        self.last_login = datetime.utcnow()
-        db.session.commit()
-
-    def serialize(self, include_sensitive=False):
-        data = {
+    # Serialization methods
+    def serialize(self):
+        return {
             'id': self.id,
             'username': self.username,
             'email': self.email,
             'role': self.role,
-            'created_at': self.created_at.isoformat(),
-            'is_active': self.is_active
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'is_active': self.is_active,
+            'profile_picture': self.profile_picture
         }
-        if include_sensitive:
-            data.update({
-                'phone_number': self.phone_number,
-                'last_login': self.last_login.isoformat() if self.last_login else None
-            })
-        return data
+
+    def get_jwt_identity(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'role': self.role
+        }
+
+    # Utility methods
+    def update_last_login(self):
+        self.last_login = datetime.utcnow()
+        db.session.commit()
 
     def has_group_permission(self, group_id, required_role='admin'):
         if self.role == 'superadmin':
@@ -107,6 +108,7 @@ class User(db.Model):
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
 
+# Event listeners
 @event.listens_for(User, 'before_insert')
 def validate_user_before_insert(mapper, connection, target):
     if not target.username or not target.email:
