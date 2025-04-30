@@ -14,16 +14,13 @@ const Register: React.FC = () => {
     email: '',
     password: '',
   });
-  const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prevForm) => ({
-      ...prevForm,
-      [name]: value,
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const handleRegister = async (e: FormEvent) => {
@@ -32,15 +29,26 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/auth/register', form);
-      
+      const response = await api.post('/auth/register', form, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+
       if (response.status === 201) {
-        navigate('/login', { state: { registrationSuccess: true } });
+        navigate('/login', {
+          state: {
+            registrationSuccess: true,
+            email: form.email,
+          },
+        });
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.error || 
-        err.message || 
+        err.response?.data?.error ||
+        err.message ||
         'Registration failed. Please try again.'
       );
     } finally {
@@ -68,13 +76,12 @@ const Register: React.FC = () => {
               type="text"
               id="username"
               name="username"
-              placeholder="Enter username"
+              placeholder="Enter your username"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               value={form.username}
               onChange={handleChange}
               required
-              minLength={3}
-              maxLength={20}
+              autoComplete="username"
             />
           </div>
 
@@ -86,11 +93,12 @@ const Register: React.FC = () => {
               type="email"
               id="email"
               name="email"
-              placeholder="Enter email"
+              placeholder="Enter your email"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               value={form.email}
               onChange={handleChange}
               required
+              autoComplete="email"
             />
           </div>
 
@@ -102,12 +110,12 @@ const Register: React.FC = () => {
               type="password"
               id="password"
               name="password"
-              placeholder="Enter password (min 8 characters)"
+              placeholder="Enter your password"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               value={form.password}
               onChange={handleChange}
               required
-              minLength={8}
+              autoComplete="new-password"
             />
           </div>
 
@@ -126,7 +134,7 @@ const Register: React.FC = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                Creating Account...
               </>
             ) : (
               'Register'
@@ -136,10 +144,7 @@ const Register: React.FC = () => {
 
         <p className="text-center text-sm mt-4 text-gray-600">
           Already have an account?{' '}
-          <a 
-            href="/login" 
-            className="text-emerald-600 hover:underline font-medium"
-          >
+          <a href="/login" className="text-emerald-600 hover:underline font-medium">
             Login here
           </a>
         </p>

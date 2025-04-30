@@ -13,16 +13,17 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object("app.config.Config")
 
-    # Initialize extensions
+    # Initialize extensions and routes
     register_extensions(app)
     register_blueprints(app)
     register_error_handlers(app)
+    register_root_route(app)
 
     return app
 
 def register_extensions(app):
-    """Register Flask extensions"""
-    # CORS Configuration
+    """Register Flask extensions with proper configuration"""
+    # Configure CORS for API routes
     CORS(
         app,
         resources={
@@ -35,14 +36,14 @@ def register_extensions(app):
         }
     )
 
-    # Database and migration
+    # Initialize database and migrations
     db.init_app(app)
     migrate.init_app(app, db)
     
-    # Authentication
+    # Setup JWT authentication
     JWTManager(app)
     
-    # WebSockets
+    # Configure WebSockets
     socketio.init_app(
         app,
         cors_allowed_origins="http://127.0.0.1:5173",
@@ -59,9 +60,9 @@ def register_extensions(app):
     )
 
 def register_blueprints(app):
-    """Register Flask blueprints with consistent URL prefixes"""
-    blueprints = [
-        # Auth routes
+    """Register all application blueprints with consistent URL prefixes"""
+    blueprint_config = [
+        # Authentication
         ('app.routes.auth', 'auth_bp', '/api/auth'),
         
         # User management
@@ -90,7 +91,51 @@ def register_blueprints(app):
         ('app.routes.meetings_routes', 'meetings_bp', '/api/meetings')
     ]
 
-    for module_path, bp_name, url_prefix in blueprints:
-        module = __import__(module_path, fromlist=[bp_name])
-        blueprint = getattr(module, bp_name)
-        app.register_blueprint(blueprint, url_prefix=url_prefix)
+    for module_path, bp_name, url_prefix in blueprint_config:
+        try:
+            module = __import__(module_path, fromlist=[bp_name])
+            blueprint = getattr(module, bp_name)
+            app.register_blueprint(blueprint, url_prefix=url_prefix)
+        except ImportError as e:
+            app.logger.error(f"Failed to register blueprint {bp_name}: {str(e)}")
+
+def register_root_route(app):
+    """Register the root endpoint with API documentation"""
+    @app.route('/')
+    def home():
+        """Root endpoint that lists all available API endpoints"""
+        return {
+            "api": {
+                "version": "1.0.0",
+                "status": "operational",
+                "documentation": "/api/docs"
+            },
+            "endpoints": {
+                "authentication": [
+                    "POST /api/auth/login",
+                    "POST /api/auth/register",
+                    "GET /api/auth/me"
+                ],
+                "users": [
+                    "GET /api/users",
+                    "GET /api/users/<user_id>",
+                    "PUT /api/users/<user_id>"
+                ],
+                "groups": [
+                    "POST /api/groups",
+                    "GET /api/groups",
+                    "GET /api/groups/<group_id>",
+                    "PUT /api/groups/<group_id>"
+                ],
+                "financial_services": [
+                    "POST /api/contributions",
+                    "GET /api/loans",
+                    "PUT /api/loans/<loan_id>/approve",
+                    "GET /api/investments"
+                ],
+                "system": [
+                    "GET /api/health",
+                    "GET /api/docs"
+                ]
+            }
+        }, 200
