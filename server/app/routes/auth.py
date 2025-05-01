@@ -1,9 +1,24 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.models.user import User
 from app.extensions import db
 from werkzeug.exceptions import BadRequest
+from flask_jwt_extended import (
+    create_access_token, 
+    jwt_required, 
+    get_jwt_identity,
+    create_refresh_token,
+    get_jwt,
+    set_access_cookies,
+    set_refresh_cookies,
+    unset_jwt_cookies
+)
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from app.models.user import User
+from app.extensions import db
+from werkzeug.exceptions import BadRequest
+from datetime import datetime, timedelta
+from functools import wraps
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -15,6 +30,17 @@ def validate_required_fields(data, fields):
     if missing:
         return jsonify({"error": "Missing required fields", "missing": missing}), 400
     return None
+
+def admin_required(fn):
+    """Decorator for admin-only endpoints"""
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        current_user = get_jwt_identity()
+        if current_user.get('role') not in ['admin', 'superadmin']:
+            return jsonify({"error": "Administrator access required"}), 403
+        return fn(*args, **kwargs)
+    return wrapper
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -31,62 +57,46 @@ def register():
         user = User(
             username=data['username'],
             email=data['email'],
-            password=data['password'],  # Will be hashed via set_password
+            password=data['password'],
+            phone_number=data.get('phone_number'),
             role=data.get('role', 'member')
         )
-        
-        # Additional explicit validation
-        user.set_username(data['username'])
-        user.set_email(data['email'])
-        user.set_password(data['password'])
         
         db.session.add(user)
         db.session.commit()
 
-        # Create token for immediate login after registration
-        access_token = create_access_token(identity=user.get_jwt_identity())
+        # Create tokens
+        access_token = create_access_token(identity=user.serialize())
+        refresh_token = create_refresh_token(identity=user.serialize())
         
-        return jsonify({
+        response = jsonify({
             "message": "Registration successful",
+            "user": user.serialize(),
             "access_token": access_token,
-            "user": user.serialize()
-        }), 201
+            "refresh_token": refresh_token
+        })
+        
+        # Set cookies if needed
+        if current_app.config.get('JWT_TOKEN_LOCATION') == ['cookies']:
+            set_access_cookies(response, access_token)
+            set_refresh_cookies(response, refresh_token)
+            
+        return response, 201
 
     except ValueError as e:
         db.session.rollback()
-        current_app.logger.error(f"Validation error during registration: {e}")
-        return jsonify({
-            "error": "Validation failed",
-            "details": str(e)
-        }), 400
-        
-    except IntegrityError as e:
+        return jsonify({"error": "Validation failed", "details": str(e)}), 400
+    except IntegrityError:
         db.session.rollback()
-        current_app.logger.error(f"Integrity error during registration: {e}")
-        return jsonify({
-            "error": "Data conflict",
-            "details": "Username or email already exists"
-        }), 409
-        
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        current_app.logger.error(f"Database error during registration: {e}")
-        return jsonify({
-            "error": "Database operation failed",
-            "details": str(e)
-        }), 500
-        
+        return jsonify({"error": "Username or email already exists"}), 409
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Unexpected error during registration: {e}")
-        return jsonify({
-            "error": "Registration failed",
-            "details": "Internal server error"
-        }), 500
+        current_app.logger.error(f"Registration error: {str(e)}")
+        return jsonify({"error": "Registration failed"}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Authenticate user and return JWT token"""
+    """Authenticate user and return JWT tokens"""
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
 
@@ -96,53 +106,88 @@ def login():
         return error
 
     try:
-        user = User.query.filter_by(username=data['username']).first()
+        # Check if login is by username or email
+        if '@' in data['username']:
+            user = User.query.filter_by(email=data['username'].lower()).first()
+        else:
+            user = User.query.filter_by(username=data['username']).first()
         
         if not user or not user.check_password(data['password']):
-            return jsonify({"error": "Invalid username or password"}), 401
+            return jsonify({"error": "Invalid credentials"}), 401
             
         if not user.is_active:
             return jsonify({"error": "Account is inactive"}), 403
 
         # Update last login
-        user.update_last_login()
+        user.last_login = datetime.utcnow()
         db.session.commit()
 
-        access_token = create_access_token(identity=user.get_jwt_identity())
+        # Create tokens
+        access_token = create_access_token(identity=user.serialize())
+        refresh_token = create_refresh_token(identity=user.serialize())
         
-        return jsonify({
-            "access_token": access_token,
+        response = jsonify({
+            "message": "Login successful",
             "user": user.serialize(),
-            "token_type": "bearer",
-            "expires_in": current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
-        }), 200
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        })
+        
+        # Set cookies if needed
+        if current_app.config.get('JWT_TOKEN_LOCATION') == ['cookies']:
+            set_access_cookies(response, access_token)
+            set_refresh_cookies(response, refresh_token)
+            
+        return response, 200
 
-    except SQLAlchemyError as e:
-        current_app.logger.error(f"Database error during login: {e}")
-        return jsonify({
-            "error": "Authentication service unavailable",
-            "details": str(e)
-        }), 500
+    except Exception as e:
+        current_app.logger.error(f"Login error: {str(e)}")
+        return jsonify({"error": "Login failed"}), 500
+
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """Refresh access token"""
+    try:
+        current_user = get_jwt_identity()
+        new_token = create_access_token(identity=current_user)
+        
+        response = jsonify({
+            "access_token": new_token
+        })
+        
+        if current_app.config.get('JWT_TOKEN_LOCATION') == ['cookies']:
+            set_access_cookies(response, new_token)
+            
+        return response, 200
+    except Exception as e:
+        return jsonify({"error": "Token refresh failed"}), 401
+
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """Logout user and invalidate tokens"""
+    try:
+        response = jsonify({"message": "Logout successful"})
+        
+        if current_app.config.get('JWT_TOKEN_LOCATION') == ['cookies']:
+            unset_jwt_cookies(response)
+            
+        return response, 200
+    except Exception as e:
+        return jsonify({"error": "Logout failed"}), 500
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
     """Get current authenticated user's profile"""
     try:
-        identity = get_jwt_identity()
-        user = User.query.get(identity['id'])
+        current_user = get_jwt_identity()
+        user = User.query.get(current_user['id'])
         
         if not user:
             return jsonify({"error": "User not found"}), 404
             
-        if not user.is_active:
-            return jsonify({"error": "Account is inactive"}), 403
-
-        return jsonify(user.serialize(include_sensitive=True)), 200
-        
-    except SQLAlchemyError as e:
-        current_app.logger.error(f"Database error fetching user: {e}")
-        return jsonify({
-            "error": "Failed to retrieve user data",
-            "details": str(e)
-        }), 500
+        return jsonify(user.serialize()), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch user"}), 500

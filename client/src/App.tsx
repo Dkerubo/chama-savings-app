@@ -1,5 +1,6 @@
 import "./App.scss";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Layout Components
 import Navbar from "./components/Navbar";
@@ -11,6 +12,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
+import Logout from "./auth/Logout";
 
 // Layouts
 import AdminLayout from "./layouts/AdminLayout";
@@ -26,13 +28,6 @@ import AdminMeetings from "./pages/admin/AdminMeetings";
 import AdminTransactions from "./pages/admin/AdminTransactions";
 import AdminContributions from "./pages/admin/AdminContributions";
 
-// import AdminInvitations from "./pages/admin/Invitations";
-// import AdminReports from "./pages/admin/Reports";
-// import AdminSettings from "./pages/admin/Settings";
-// import AdminNotifications from "./pages/admin/Notifications";
-// import AdminMessages from "./pages/admin/Messages";
-// import AdminPayments from "./pages/admin/Payments";
-
 // Member Pages
 import MemberDashboard from "./pages/member/Dashboard";
 import MemberGroups from "./pages/member/Groups";
@@ -41,17 +36,6 @@ import CreateGroup from "./pages/member/CreateGroup";
 import Contributions from "./pages/member/Contributions";
 import Transactions from "./pages/member/Transactions";
 import Loans from "./pages/member/Loans";
-
-
-// import MyGroups from "./pages/member/MyGroups";
-// import Investments from "./pages/member/Investments";
-// import Meetings from "./pages/member/Meetings";
-// import Invitations from "./pages/member/Invitations";
-// import Reports from "./pages/member/Reports";
-// import Settings from "./pages/member/Settings";
-// import Notifications from "./pages/member/Notifications";
-// import Messages from "./pages/member/Messages";
-// import Payments from "./pages/member/Payments";
 
 function App() {
   return (
@@ -66,29 +50,38 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/logout" element={<Logout />} />
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route path="AdminDashboard" element={<AdminDashboard />} />
-              <Route path="AdminUsers" element={<AdminUsers />} />
-              <Route path="AdminGroups" element={<AdminGroups />} />
-              <Route path="AdminLoans" element={<AdminLoans />} />
-              <Route path="AdminInvestments" element={<AdminInvestments />} />
-              <Route path="AdminMeetings" element={<AdminMeetings />} />
-              <Route path="AdminTransactions" element={<AdminTransactions />} />
-              <Route path="AdminContributions" element={<AdminContributions />} />
-              {/* 
-              <Route path="invitations" element={<AdminInvitations />} />
-              <Route path="reports" element={<AdminReports />} />
-              <Route path="settings" element={<AdminSettings />} />
-              <Route path="notifications" element={<AdminNotifications />} />
-              <Route path="messages" element={<AdminMessages />} />
-              <Route path="payments" element={<AdminPayments />} />
-              */}
+            {/* Admin Routes - Protected with admin role */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute roles={['admin', 'superadmin']}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="groups" element={<AdminGroups />} />
+              <Route path="loans" element={<AdminLoans />} />
+              <Route path="investments" element={<AdminInvestments />} />
+              <Route path="meetings" element={<AdminMeetings />} />
+              <Route path="transactions" element={<AdminTransactions />} />
+              <Route path="contributions" element={<AdminContributions />} />
             </Route>
 
-            {/* Member Routes */}
-            <Route path="/member" element={<MemberLayout />}>
+            {/* Member Routes - Protected (any authenticated user) */}
+            <Route
+              path="/member"
+              element={
+                <ProtectedRoute>
+                  <MemberLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<MemberDashboard />} />
               <Route path="dashboard" element={<MemberDashboard />} />
               <Route path="groups" element={<MemberGroups />} />
               <Route path="groups/:id" element={<GroupDetails />} />
@@ -96,18 +89,10 @@ function App() {
               <Route path="contributions" element={<Contributions />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="loans" element={<Loans />} />
-              {/* 
-              <Route path="my-groups" element={<MyGroups />} />
-              <Route path="investments" element={<Investments />} />
-              <Route path="meetings" element={<Meetings />} />
-              <Route path="invitations" element={<Invitations />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="payments" element={<Payments />} />
-              */}
             </Route>
+
+            {/* Catch-all route for unauthorized/not found */}
+            <Route path="*" element={<Home />} />
           </Routes>
         </main>
         <Footer />

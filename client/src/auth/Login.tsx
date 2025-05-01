@@ -67,18 +67,13 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/auth/login', form, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      const response = await api.post('/auth/login', form);
 
-      const { access_token, user } = response.data;
+      const { access_token, refresh_token, user } = response.data;
 
-      // Store token and basic user info
+      // Store tokens and basic user info
       localStorage.setItem('token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify({
         id: user.id,
         username: user.username,
@@ -87,10 +82,18 @@ const Login: React.FC = () => {
       }));
 
       // Redirect to previous page or dashboard
-      navigate(location.state?.from || '/dashboard', { 
-        replace: true,
-        state: { loginSuccess: true }
-      });
+     // Redirect based on user role
+if (user.role === 'superadmin') {
+  navigate('/admin/AdminDashboard', { 
+    replace: true,
+    state: { loginSuccess: true }
+  });
+} else {
+  navigate('/member/Dashboard', { 
+    replace: true,
+    state: { loginSuccess: true }
+  });
+}
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 
                           err.response?.data?.message || 
@@ -119,6 +122,12 @@ const Login: React.FC = () => {
         {location.state?.registrationSuccess && (
           <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">
             Registration successful! Please log in with your credentials.
+          </div>
+        )}
+
+        {location.state?.logoutSuccess && (
+          <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded-lg text-sm">
+            You have been successfully logged out.
           </div>
         )}
 

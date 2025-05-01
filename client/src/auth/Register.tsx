@@ -87,13 +87,35 @@ const Register: React.FC = () => {
       });
 
       if (response.status === 201) {
-        navigate('/login', {
-          state: {
-            registrationSuccess: true,
-            email: form.email,
-          },
-          replace: true
+        // Auto-login after registration
+        const loginResponse = await api.post('/auth/login', {
+          username: form.username,
+          password: form.password
         });
+
+        const { access_token, refresh_token, user } = loginResponse.data;
+
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('refresh_token', refresh_token);
+        localStorage.setItem('user', JSON.stringify({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        }));
+
+        // Redirect based on user role
+if (user.role === 'superadmin') {
+  navigate('/admin/AdminDashboard', { 
+    state: { registrationSuccess: true },
+    replace: true
+  });
+} else {
+  navigate('/member/Dashboard', { 
+    state: { registrationSuccess: true },
+    replace: true
+  });
+}
       }
     } catch (err: any) {
       if (err.response?.data?.details) {
@@ -128,6 +150,7 @@ const Register: React.FC = () => {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4" noValidate>
+
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
               Username
@@ -217,33 +240,19 @@ const Register: React.FC = () => {
             />
           </div>
 
-          <button
+           <button
             type="submit"
-            disabled={isLoading || Object.keys(errors).length > 0}
-            className={`w-full py-2 rounded-lg transition flex justify-center items-center ${
-              isLoading || Object.keys(errors).length > 0
-                ? 'bg-emerald-400 cursor-not-allowed' 
-                : 'bg-emerald-600 hover:bg-emerald-700'
-            } text-white`}
+            disabled={isLoading}
+            className="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 disabled:bg-emerald-400"
           >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating Account...
-              </>
-            ) : (
-              'Register'
-            )}
+            {isLoading ? 'Creating Account...' : 'Register'}
           </button>
         </form>
 
-        <p className="text-center text-sm mt-4 text-gray-600">
+        <p className="text-center mt-4">
           Already have an account?{' '}
-          <a href="/login" className="text-emerald-600 hover:underline font-medium">
-            Login here
+          <a href="/login" className="text-emerald-600 hover:underline">
+            Login
           </a>
         </p>
       </div>

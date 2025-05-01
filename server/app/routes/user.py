@@ -1,3 +1,4 @@
+from functools import wraps
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
@@ -7,21 +8,20 @@ from werkzeug.exceptions import BadRequest
 
 user_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
-def admin_required():
-    """Decorator factory for admin-only endpoints"""
-    def decorator(f):
-        @jwt_required()
-        def wrapper(*args, **kwargs):
-            current_user = get_jwt_identity()
-            if current_user['role'] not in ['admin', 'superadmin']:
-                return jsonify({'error': 'Administrator access required.'}), 403
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
+def admin_required(f):
+    """Decorator for admin-only endpoints"""
+    @wraps(f)  # This preserves the original function's metadata
+    @jwt_required()
+    def decorated_function(*args, **kwargs):
+        current_user = get_jwt_identity()
+        if current_user['role'] not in ['admin', 'superadmin']:
+            return jsonify({'error': 'Administrator access required.'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
 
 @user_bp.route('/', methods=['GET'])
-@admin_required()
-def get_users():
+@admin_required
+def get_all_users():
     """Get all users (admin only)"""
     try:
         page = request.args.get('page', 1, type=int)
@@ -40,7 +40,7 @@ def get_users():
 
 @user_bp.route('/<int:user_id>', methods=['GET'])
 @jwt_required()
-def get_user(user_id):
+def get_single_user(user_id):
     """Get specific user (admin or self)"""
     current_user = get_jwt_identity()
     
@@ -60,7 +60,7 @@ def get_user(user_id):
 
 @user_bp.route('/<int:user_id>', methods=['PATCH', 'PUT'])
 @jwt_required()
-def update_user(user_id):
+def update_user_profile(user_id):
     """Update user profile (admin or self with restrictions)"""
     current_user = get_jwt_identity()
     
@@ -121,8 +121,8 @@ def update_user(user_id):
         return jsonify({'error': 'Invalid JSON data'}), 400
 
 @user_bp.route('/<int:user_id>', methods=['DELETE'])
-@admin_required()
-def delete_user(user_id):
+@admin_required
+def delete_user_account(user_id):
     """Delete user account (admin only, with safeguards)"""
     current_user = get_jwt_identity()
     
@@ -160,4 +160,5 @@ def delete_user(user_id):
 def get_current_user_profile():
     """Get profile of currently authenticated user"""
     current_user = get_jwt_identity()
-    return get_user(current_user['id'])
+    user = User.query.get_or_404(current_user['id'])
+    return jsonify(user.serialize(include_sensitive=True)), 200
