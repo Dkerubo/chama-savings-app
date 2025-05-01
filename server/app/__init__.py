@@ -39,10 +39,10 @@ def register_extensions(app):
     # Initialize database and migrations
     db.init_app(app)
     migrate.init_app(app, db)
-    
+
     # Setup JWT authentication
     JWTManager(app)
-    
+
     # Configure WebSockets
     socketio.init_app(
         app,
@@ -61,43 +61,39 @@ def register_extensions(app):
 
 def register_blueprints(app):
     """Register all application blueprints with consistent URL prefixes"""
-    blueprint_config = [
-        # Authentication
-        ('app.routes.auth', 'auth_bp', '/api/auth'),
-        
-        # User management
-        ('app.routes.user', 'user_bp', '/api/users'),
-        
-        # Group management
-        ('app.routes.group', 'group_bp', '/api/groups'),
-        
-        # Financial operations
-        ('app.routes.member_routes', 'member_bp', '/api/members'),
-        ('app.routes.contribution_routes', 'contribution_bp', '/api/contributions'),
-        ('app.routes.loan_routes', 'loan_bp', '/api/loans'),
-        ('app.routes.investment_routes', 'investment_bp', '/api/investments'),
-        ('app.routes.investment_payment_routes', 'payment_bp', '/api/payments'),
-        
-        # Notifications and messaging
-        ('app.routes.notification', 'notification_bp', '/api/notifications'),
-        ('app.routes.messaging_routes', 'messaging_bp', '/api/messages'),
-        
-        # Group features
-        ('app.routes.membership_routes', 'membership_bp', '/api/memberships'),
-        ('app.routes.invitations_routes', 'invitations_bp', '/api/invitations'),
-        ('app.routes.action_items_routes', 'action_bp', '/api/action-items'),
-        ('app.routes.goals_routes', 'goals_bp', '/api/goals'),
-        ('app.routes.recurrence_routes', 'recurrence_bp', '/api/recurrence-rules'),
-        ('app.routes.meetings_routes', 'meetings_bp', '/api/meetings')
-    ]
+    from app.routes.auth import auth_bp
+    from app.routes.user import user_bp
+    from app.routes.group import group_bp
+    from app.routes.member_routes import member_bp
+    from app.routes.contribution_routes import contribution_bp
+    from app.routes.loan_routes import loan_bp
+    from app.routes.investment_routes import investment_bp
+    from app.routes.investment_payment_routes import payment_bp
+    from app.routes.notification import notification_bp
+    from app.routes.messaging_routes import messaging_bp
+    from app.routes.membership_routes import membership_bp
+    from app.routes.invitations_routes import invitations_bp
+    from app.routes.action_items_routes import action_bp
+    from app.routes.goals_routes import goals_bp
+    from app.routes.recurrence_routes import recurrence_bp
+    from app.routes.meetings_routes import meetings_bp
 
-    for module_path, bp_name, url_prefix in blueprint_config:
-        try:
-            module = __import__(module_path, fromlist=[bp_name])
-            blueprint = getattr(module, bp_name)
-            app.register_blueprint(blueprint, url_prefix=url_prefix)
-        except ImportError as e:
-            app.logger.error(f"Failed to register blueprint {bp_name}: {str(e)}")
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(user_bp, url_prefix="/api/users")
+    app.register_blueprint(group_bp, url_prefix="/api/groups")
+    app.register_blueprint(member_bp, url_prefix="/api/members")
+    app.register_blueprint(contribution_bp, url_prefix="/api/contributions")
+    app.register_blueprint(loan_bp, url_prefix="/api/loans")
+    app.register_blueprint(investment_bp, url_prefix="/api/investments")
+    app.register_blueprint(payment_bp, url_prefix="/api/payments")
+    app.register_blueprint(notification_bp, url_prefix="/api/notifications")
+    app.register_blueprint(messaging_bp, url_prefix="/api/messages")
+    app.register_blueprint(membership_bp, url_prefix="/api/memberships")
+    app.register_blueprint(invitations_bp, url_prefix="/api/invitations")
+    app.register_blueprint(action_bp, url_prefix="/api/action-items")
+    app.register_blueprint(goals_bp, url_prefix="/api/goals")
+    app.register_blueprint(recurrence_bp, url_prefix="/api/recurrence-rules")
+    app.register_blueprint(meetings_bp, url_prefix="/api/meetings")
 
 def register_root_route(app):
     """Register the root endpoint with API documentation"""
