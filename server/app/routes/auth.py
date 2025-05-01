@@ -1,83 +1,148 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt_identity
-)
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.models.user import User
 from app.extensions import db
+from werkzeug.exceptions import BadRequest
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-
 def validate_required_fields(data, fields):
-    missing = [field for field in fields if field not in data]
+    """Validate required fields in request data"""
+    if data is None:
+        return jsonify({"error": "Request body must be JSON"}), 400
+    missing = [f for f in fields if f not in data or data.get(f) is None]
     if missing:
-        return jsonify({
-            "error": "Missing required fields",
-            "missing": missing
-        }), 400
+        return jsonify({"error": "Missing required fields", "missing": missing}), 400
     return None
-
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
+    """Register a new user"""
     data = request.get_json()
-    error_response = validate_required_fields(data, ['username', 'email', 'password'])
-    if error_response:
-        return error_response
-
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({"error": "Username already exists"}), 409
-    if User.query.filter_by(email=data['email']).first():
-        return jsonify({"error": "Email already registered"}), 409
+    
+    # Validate required fields
+    error = validate_required_fields(data, ['username', 'email', 'password'])
+    if error:
+        return error
 
     try:
-        new_user = User(
+        # Create user with validation
+        user = User(
             username=data['username'],
             email=data['email'],
+            password=data['password'],  # Will be hashed via set_password
             role=data.get('role', 'member')
         )
-        new_user.set_password(data['password'])
-
-        db.session.add(new_user)
+        
+        # Additional explicit validation
+        user.set_username(data['username'])
+        user.set_email(data['email'])
+        user.set_password(data['password'])
+        
+        db.session.add(user)
         db.session.commit()
 
+        # Create token for immediate login after registration
+        access_token = create_access_token(identity=user.get_jwt_identity())
+        
         return jsonify({
             "message": "Registration successful",
-            "user": new_user.serialize()
+            "access_token": access_token,
+            "user": user.serialize()
         }), 201
 
-    except Exception:
+    except ValueError as e:
         db.session.rollback()
-        return jsonify({"error": "Registration failed"}), 500
-
+        current_app.logger.error(f"Validation error during registration: {e}")
+        return jsonify({
+            "error": "Validation failed",
+            "details": str(e)
+        }), 400
+        
+    except IntegrityError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Integrity error during registration: {e}")
+        return jsonify({
+            "error": "Data conflict",
+            "details": "Username or email already exists"
+        }), 409
+        
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Database error during registration: {e}")
+        return jsonify({
+            "error": "Database operation failed",
+            "details": str(e)
+        }), 500
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Unexpected error during registration: {e}")
+        return jsonify({
+            "error": "Registration failed",
+            "details": "Internal server error"
+        }), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    """Authenticate user and return JWT token"""
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+
     data = request.get_json()
-    error_response = validate_required_fields(data, ['username', 'password'])
-    if error_response:
-        return error_response
+    error = validate_required_fields(data, ['username', 'password'])
+    if error:
+        return error
 
-    user = User.query.filter_by(username=data['username']).first()
+    try:
+        user = User.query.filter_by(username=data['username']).first()
+        
+        if not user or not user.check_password(data['password']):
+            return jsonify({"error": "Invalid username or password"}), 401
+            
+        if not user.is_active:
+            return jsonify({"error": "Account is inactive"}), 403
 
-    if not user or not user.check_password(data['password']):
-        return jsonify({"error": "Invalid credentials"}), 401
+        # Update last login
+        user.update_last_login()
+        db.session.commit()
 
-    access_token = create_access_token(identity=user.get_jwt_identity())
+        access_token = create_access_token(identity=user.get_jwt_identity())
+        
+        return jsonify({
+            "access_token": access_token,
+            "user": user.serialize(),
+            "token_type": "bearer",
+            "expires_in": current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
+        }), 200
 
-    return jsonify({
-        "access_token": access_token,
-        "user": user.serialize()
-    }), 200
-
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"Database error during login: {e}")
+        return jsonify({
+            "error": "Authentication service unavailable",
+            "details": str(e)
+        }), 500
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    current_user = get_jwt_identity()
-    user = User.query.get(current_user['id'])
+    """Get current authenticated user's profile"""
+    try:
+        identity = get_jwt_identity()
+        user = User.query.get(identity['id'])
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        if not user.is_active:
+            return jsonify({"error": "Account is inactive"}), 403
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    return jsonify(user.serialize()), 200
+        return jsonify(user.serialize(include_sensitive=True)), 200
+        
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"Database error fetching user: {e}")
+        return jsonify({
+            "error": "Failed to retrieve user data",
+            "details": str(e)
+        }), 500

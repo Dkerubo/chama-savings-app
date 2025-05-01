@@ -11,7 +11,7 @@ from .notification_type import NotificationType
 from .action_items import ActionItem
 from .goals import Goal
 from .invitations import Invitation
-from .memberships import Membership
+# from .memberships import Membership
 from .message_threads import MessageThread
 from .recurrence_rules import RecurrenceRule
 from .meetings import Meeting
@@ -31,7 +31,7 @@ __all__ = [
     'ActionItem',
     'Goal',
     'Invitation',
-    'Membership',
+    # 'Membership',
     'MessageThread',
     'RecurrenceRule',
     'Meeting',

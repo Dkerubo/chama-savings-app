@@ -1,7 +1,7 @@
-from app.extensions import db
 from datetime import datetime
 from sqlalchemy import event
 from sqlalchemy.orm import validates
+from app.extensions import db
 
 class Member(db.Model):
     __tablename__ = 'members'
@@ -10,16 +10,16 @@ class Member(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id', ondelete='CASCADE'), nullable=False)
     join_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    status = db.Column(db.String(20), default='pending', nullable=False)  # 'pending', 'active', 'inactive', 'suspended'
+    status = db.Column(db.String(20), default='pending', nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     last_active = db.Column(db.DateTime)
     contribution_score = db.Column(db.Integer, default=0)
 
     # Relationships
-    user = db.relationship('User', back_populates='memberships')
+    user = db.relationship('User', back_populates='members')
     group = db.relationship('Group', back_populates='members')
     contributions = db.relationship('Contribution', back_populates='member', cascade='all, delete-orphan')
-    loans = db.relationship("Loan", back_populates="member", foreign_keys="[Loan.member_id]")
+    loans = db.relationship('Loan', back_populates='member', foreign_keys='Loan.member_id')
     investments = db.relationship('Investment', back_populates='member', cascade='all, delete-orphan')
     guaranteed_loans = db.relationship(
         'Loan',
@@ -28,7 +28,7 @@ class Member(db.Model):
     )
 
     __table_args__ = (
-        db.UniqueConstraint('user_id', 'group_id', name='unique_membership'),
+        db.UniqueConstraint('user_id', 'group_id', name='unique_member'),
         db.Index('idx_member_status', 'status'),
     )
 
@@ -47,7 +47,6 @@ class Member(db.Model):
         return status
 
     def serialize(self):
-        """Return comprehensive member data in serializable format"""
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -68,23 +67,19 @@ class Member(db.Model):
         }
 
     def activate(self):
-        """Activate a pending member"""
         if self.status == 'pending':
             self.status = 'active'
             self.join_date = datetime.utcnow()
 
     def update_activity(self):
-        """Update last active timestamp"""
         self.last_active = datetime.utcnow()
 
     def update_contribution_score(self):
-        """Recalculate contribution score based on contributions and loan repayments"""
         confirmed_contributions = sum(1 for c in self.contributions if c.status == 'confirmed')
         timely_repayments = sum(1 for l in self.loans for r in l.repayments if r.status == 'full')
         self.contribution_score = confirmed_contributions + timely_repayments
 
     def can_request_loan(self):
-        """Determine if member is eligible for a new loan"""
         return (
             self.status == 'active' and
             not any(l for l in self.loans if l.status in ['active', 'defaulted'])
@@ -96,26 +91,21 @@ class Member(db.Model):
             f'Status: {self.status}, Admin: {self.is_admin}>'
         )
 
-
 # Event listeners
 @event.listens_for(Member, 'after_insert')
 def after_member_insert(mapper, connection, target):
-    """Triggered when a new member is added."""
     print(f"New member joined: User {target.user_id} to Group {target.group_id}")
 
-    # Automatically activate the creator if they're the first in the group
     member_count = db.session.query(Member).filter_by(group_id=target.group_id).count()
     if member_count == 1:
         target.status = 'active'
         target.is_admin = True
         print(f"User {target.user_id} is the group creator and now admin of Group {target.group_id}")
 
-    # Enforce group size constraints (only warn — enforced elsewhere during invites)
     elif member_count > 30:
         print(f"Warning: Group {target.group_id} exceeded 30 members!")
 
 @event.listens_for(Member, 'after_update')
 def after_member_update(mapper, connection, target):
-    """Triggered when a member record is updated."""
     if target.status == 'active':
         print(f"Member {target.id} activated in Group {target.group_id}")

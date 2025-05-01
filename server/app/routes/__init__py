@@ -10,7 +10,7 @@ from app.routes.loan_routes import loan_bp
 from app.routes.investment_routes import investment_bp
 from app.routes.investment_payment_routes import payment_bp
 from app.routes.notification import notification_bp
-from app.routes.membership_routes import membership_bp
+# from app.routes.membership_routes import membership_bp
 from app.routes.invitations_routes import invitations_bp
 from app.routes.action_items_routes import action_bp
 from app.routes.messaging_routes import messaging_bp
@@ -30,7 +30,7 @@ def register_blueprints(app):
     app.register_blueprint(investment_bp, url_prefix='/api/investments')
     app.register_blueprint(payment_bp, url_prefix='/api')
     app.register_blueprint(notification_bp, url_prefix='/api/notifications')
-    app.register_blueprint(membership_bp, url_prefix='/api/membership')
+    # app.register_blueprint(membership_bp, url_prefix='/api/membership')
     app.register_blueprint(invitations_bp, url_prefix='/api/invitations')
     app.register_blueprint(action_bp, url_prefix='/api/actions')
     app.register_blueprint(messaging_bp, url_prefix='/api/messages')

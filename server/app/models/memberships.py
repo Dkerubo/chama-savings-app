@@ -20,5 +20,5 @@ class Membership(db.Model):
     is_active = db.Column(db.Boolean, default=True)
 
     group = db.relationship('Group', backref='memberships')
-    user = db.relationship('User', backref='memberships')
+    user = db.relationship("User", back_populates="memberships")
     role = db.relationship('Role', backref='members')

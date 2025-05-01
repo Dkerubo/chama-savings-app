@@ -2,7 +2,6 @@ from flask import Flask
 from dotenv import load_dotenv
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_socketio import SocketIO
 from app.extensions import db, migrate, socketio
 from app.errors import register_error_handlers
 
@@ -23,39 +22,33 @@ def create_app():
 
 def register_extensions(app):
     """Register Flask extensions with proper configuration"""
-    # Configure CORS for API routes
+
+    # ✅ Configure CORS (FIXED: allowing frontend origin)
     CORS(
         app,
-        resources={
-            r"/api/*": {
-                "origins": "http://127.0.0.1:5173",
-                "supports_credentials": True,
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization"]
-            }
-        }
+        resources={r"/api/*": {"origins": ["http://127.0.0.1:5173", "http://localhost:5173"]}},
+        supports_credentials=True
     )
 
-    # Initialize database and migrations
+    # Database and migration setup
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # Setup JWT authentication
+    # JWT setup
     JWTManager(app)
 
-    # Configure WebSockets
+    # WebSocket setup
     socketio.init_app(
         app,
-        cors_allowed_origins="http://127.0.0.1:5173",
+        cors_allowed_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
         logger=True,
         engineio_logger=True
     )
 
-    # Import models to register with SQLAlchemy
+    # Import models for SQLAlchemy registration
     from app.models import (
         user, member, group, contribution, loan, loan_repayment,
-        investment, investment_payment, notification, memberships,
-        invitations, action_items, message_threads, goals,
+        investment, investment_payment, notification, invitations, action_items, message_threads, goals,
         recurrence_rules, meetings
     )
 
@@ -71,7 +64,7 @@ def register_blueprints(app):
     from app.routes.investment_payment_routes import payment_bp
     from app.routes.notification import notification_bp
     from app.routes.messaging_routes import messaging_bp
-    from app.routes.membership_routes import membership_bp
+    # from app.routes.membership_routes import membership_bp
     from app.routes.invitations_routes import invitations_bp
     from app.routes.action_items_routes import action_bp
     from app.routes.goals_routes import goals_bp
@@ -88,7 +81,7 @@ def register_blueprints(app):
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
     app.register_blueprint(notification_bp, url_prefix="/api/notifications")
     app.register_blueprint(messaging_bp, url_prefix="/api/messages")
-    app.register_blueprint(membership_bp, url_prefix="/api/memberships")
+    # app.register_blueprint(membership_bp, url_prefix="/api/memberships")
     app.register_blueprint(invitations_bp, url_prefix="/api/invitations")
     app.register_blueprint(action_bp, url_prefix="/api/action-items")
     app.register_blueprint(goals_bp, url_prefix="/api/goals")
