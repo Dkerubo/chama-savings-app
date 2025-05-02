@@ -30,9 +30,9 @@ const CreateGroup: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-left">Create a New Group</h2>
+      <h2 className="text-2xl font-semibold text-emerald-700 mb-4 text-left">Create a New Group</h2>
       <CreateGroupForm onSuccess={fetchGroups} />   {/* now matches prop */}
-      <h2 className="text-2xl font-bold text-left">Group Details</h2>
+      <h2 className="text-2xl font-semibold text-emerald-700 mb-4 text-left">Group Details</h2>
       <GroupTable
         groups={groups}
         onDelete={deleteGroup}

@@ -14,6 +14,8 @@ class Member(db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     last_active = db.Column(db.DateTime)
     contribution_score = db.Column(db.Integer, default=0)
+    phone = db.Column(db.String(20))
+    address = db.Column(db.String(255))
 
     # Relationships
     user = db.relationship('User', back_populates='members')
@@ -56,6 +58,8 @@ class Member(db.Model):
             'is_admin': self.is_admin,
             'last_active': self.last_active.isoformat() if self.last_active else None,
             'contribution_score': self.contribution_score,
+            'phone': self.phone,
+            'address': self.address,
             'user_details': {
                 'username': self.user.username,
                 'email': self.user.email
@@ -95,13 +99,14 @@ class Member(db.Model):
 @event.listens_for(Member, 'after_insert')
 def after_member_insert(mapper, connection, target):
     print(f"New member joined: User {target.user_id} to Group {target.group_id}")
+    session = db.object_session(target)
+    member_count = session.query(Member).filter_by(group_id=target.group_id).count()
 
-    member_count = db.session.query(Member).filter_by(group_id=target.group_id).count()
     if member_count == 1:
         target.status = 'active'
         target.is_admin = True
+        session.commit()
         print(f"User {target.user_id} is the group creator and now admin of Group {target.group_id}")
-
     elif member_count > 30:
         print(f"Warning: Group {target.group_id} exceeded 30 members!")
 

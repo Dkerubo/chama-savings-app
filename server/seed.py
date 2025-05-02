@@ -2,49 +2,46 @@
 
 import uuid
 import time
-from app.models.user import User
 from app import create_app
+from app.models.user import User
 from app.extensions import db
-
-# Initialize Flask app
-app = create_app()
-app.config['DISABLE_SOCKETIO'] = True  # Optional if using Flask-SocketIO
-app.app_context().push()
 
 def generate_unique_receipt_number():
     """Generate a unique receipt number based on timestamp and UUID."""
     return f"RC-{int(time.time() * 1000)}-{uuid.uuid4().hex[:6]}"
 
-def seed_super_admin():
-    """Seed a default super admin user if not already present."""
-    super_admin_data = {
-        "username": "superadmin",
-        "email": "superadmin@chama.com",
-        "password": "Admin@1234",  # Pass plain password to trigger hashing
-        "role": "superadmin"
-    }
+def seed_superadmin():
+    """Seed a default superadmin user if not already present."""
+    app = create_app()
+    app.config['DISABLE_SOCKETIO'] = True  # Optional if using Flask-SocketIO
 
-    try:
-        existing = User.query.filter_by(email=super_admin_data["email"]).first()
+    with app.app_context():
+        existing = User.query.filter_by(email="superadmin@chama.com").first()
         if not existing:
-            super_admin = User(**super_admin_data)
-            db.session.add(super_admin)
+            superadmin = User(
+                username="superadmin",
+                email="superadmin@chama.com",
+                password="Admin@1234",  # Plain text to trigger hashing
+                role="superadmin"
+            )
+            db.session.add(superadmin)
             db.session.commit()
-            print(f"✅ Super admin created: {super_admin.username}")
+            print("✅ Superadmin created successfully")
         else:
-            print("ℹ️ Super admin already exists.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"❌ Error creating super admin: {str(e)}")
+            print("ℹ️ Superadmin already exists")
 
-def run_seeds():
+def reset_and_seed():
     """Reset and seed the database."""
-    print("🛠️ Initializing database...")
-    db.drop_all()
-    db.create_all()
-    print("🚀 Seeding data...")
-    seed_super_admin()
-    print("✅ Seeding complete (only Super Admin created).")
+    app = create_app()
+    app.config['DISABLE_SOCKETIO'] = True
+
+    with app.app_context():
+        print("🧹 Dropping and recreating database...")
+        db.drop_all()
+        db.create_all()
+        print("🌱 Seeding data...")
+        seed_superadmin()
+        print("✅ Seeding complete.")
 
 if __name__ == '__main__':
-    run_seeds()
+    reset_and_seed()

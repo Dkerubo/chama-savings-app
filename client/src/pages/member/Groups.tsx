@@ -30,7 +30,7 @@ const MemberGroups: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-left">My Groups</h2>
+      <h2 className="text-2xl font-semibold text-emerald-700 mb-4 text-left">My Groups</h2>
       <GroupTable
         groups={groups}
         onDelete={deleteGroup}

@@ -14,6 +14,7 @@ const Sidebar = ({ role }: Props) => {
     { label: "Loans", path: "/admin/loans" },
     { label: "Investments", path: "/admin/investments" },
     { label: "Meetings", path: "/admin/meetings" },
+    { label: "All Contributions", path: "/admin/contributions" },
   ];
 
   const memberLinks = [
@@ -22,19 +23,22 @@ const Sidebar = ({ role }: Props) => {
     { label: "My Groups", path: "/member/groups" },
     { label: "Contributions", path: "/member/contributions" },
     { label: "Invitations", path: "/member/invitations" },
+    { label: "My Contributions", path: "/contributions" },
   ];
 
   const links = role === "admin" ? adminLinks : memberLinks;
 
   return (
     <aside className="w-64 bg-white shadow-md h-screen p-4 sticky top-0">
-      <h2 className="text-xl font-bold mb-4">{role === "admin" ? "Admin" : "Member"} Panel</h2>
+      <h2 className="text-xl font-bold mb-4">
+        {role === "admin" ? "Admin" : "Member"} Panel
+      </h2>
       <ul className="space-y-2">
         {links.map(({ label, path }) => (
           <li key={path}>
             <Link
               to={path}
-              className={`block px-4 py-2 rounded hover:bg-blue-100 ${
+              className={`block px-4 py-2 rounded hover:bg-emerald-600 ${
                 location.pathname === path ? "bg-blue-200 font-semibold" : ""
               }`}
             >

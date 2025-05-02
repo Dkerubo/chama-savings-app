@@ -23,13 +23,6 @@ class Group(db.Model):
     # Relationships
     admin = db.relationship('User', back_populates='admin_groups')
     members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
-    contributions = db.relationship('Contribution', back_populates='group', cascade='all, delete-orphan')
-    loans = db.relationship('Loan', back_populates='group', cascade='all, delete-orphan')
-    investments = db.relationship('Investment', back_populates='group', cascade='all, delete-orphan')
-
-    __table_args__ = (
-        db.Index('idx_group_status', 'status'),
-    )
 
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
@@ -63,23 +56,14 @@ class Group(db.Model):
             'status': self.status,
             'admin_id': self.admin_id,
             'admin_name': self.admin.username if self.admin else None,
-            'member_count': self.active_members_count(),
             'meeting_schedule': self.meeting_schedule,
             'location': self.location,
             'logo_url': self.logo_url,
+            'member_count': self.active_members_count()
         }
         if include_members:
             data['members'] = [m.serialize() for m in self.members]
         return data
-
-    def update_current_amount(self):
-        total = sum(
-            contribution.amount
-            for contribution in self.contributions
-            if contribution.status == 'confirmed'
-        )
-        self.current_amount = total
-        return self.current_amount
 
     def progress_percentage(self):
         if self.target_amount <= 0:
