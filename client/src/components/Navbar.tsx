@@ -1,53 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaBars, FaTimes, FaUser, FaSignOutAlt } from "react-icons/fa";
-
-interface UserData {
-  id?: number;
-  username?: string;
-  email?: string;
-  role?: string;
-}
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState('');
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const userJson = localStorage.getItem('user');
-    let user: UserData | null = null;
-    
-    try {
-      if (userJson && userJson !== 'null') {
-        user = JSON.parse(userJson) as UserData;
-      }
-    } catch (error) {
-      console.error('Failed to parse user data:', error);
-      user = null;
-    }
-
-    setIsAuthenticated(!!user);
-    setUserRole(user?.role || '');
-    setUserData(user);
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('refresh_token');
-    setIsAuthenticated(false);
-    setUserRole('');
-    setUserData(null);
+    logout();
     setIsMobileMenuOpen(false);
     navigate('/login');
   };
 
   const getDisplayName = () => {
-    if (!userData) return 'User';
-    return userData.username || (userData.email ? userData.email.split('@')[0] : 'User');
+    if (!user) return 'User';
+    return user.username || (user.email ? user.email.split('@')[0] : 'User');
   };
 
   return (
@@ -76,7 +45,7 @@ export default function Navbar() {
 
           {isAuthenticated ? (
             <>
-              {userRole === 'admin' || userRole === 'superadmin' ? (
+              {user?.role === 'admin' || user?.role === 'superadmin' ? (
                 <Link 
                   to="/admin" 
                   className="flex items-center gap-1 hover:text-emerald-400 transition"
@@ -102,7 +71,7 @@ export default function Navbar() {
                 Logout
               </button>
               
-              {userData && (
+              {user && (
                 <span className="ml-2 text-emerald-300">
                   {getDisplayName()}
                 </span>
@@ -164,7 +133,7 @@ export default function Navbar() {
 
           {isAuthenticated ? (
             <>
-              {userRole === 'admin' || userRole === 'superadmin' ? (
+              {user?.role === 'admin' || user?.role === 'superadmin' ? (
                 <Link 
                   to="/admin" 
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -184,7 +153,7 @@ export default function Navbar() {
                 </Link>
               )}
               
-              {userData && (
+              {user && (
                 <div className="py-2 border-t border-gray-700 mt-2">
                   <span className="text-emerald-300">
                     Welcome, {getDisplayName()}

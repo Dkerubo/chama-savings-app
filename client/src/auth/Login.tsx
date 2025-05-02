@@ -1,108 +1,79 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../api';
 
-interface LoginFormState {
+interface Credentials {
   username: string;
   password: string;
 }
 
 const Login: React.FC = () => {
-  const [form, setForm] = useState<LoginFormState>({
+  const [credentials, setCredentials] = useState<Credentials>({
     username: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
 
   useEffect(() => {
-    // Clear any existing auth tokens when arriving at login page
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-
-    // Pre-fill username/email if redirected from registration
     if (location.state?.email) {
-      setForm((prev) => ({ ...prev, username: location.state.email }));
+      setCredentials((prev) => ({ ...prev, username: location.state.email }));
     }
   }, [location.state]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prevForm) => ({
-      ...prevForm,
-      [name]: value,
-    }));
-    // Clear error when user types
+    setCredentials((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (!form.username.trim()) {
+    if (!credentials.username.trim()) {
       newErrors.username = 'Username or email is required';
     }
-    
-    if (!form.password) {
+    if (!credentials.password) {
       newErrors.password = 'Password is required';
-    } else if (form.password.length < 8) {
+    } else if (credentials.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
-    setErrors({});
     setIsLoading(true);
+    setErrors({});
 
     try {
-      const response = await api.post('/auth/login', form);
+      const response = await api.post('/auth/login', {
+        username: credentials.username,
+        password: credentials.password,
+      });
 
-      const { access_token, refresh_token, user } = response.data;
+      const { access_token, user } = response.data;
+      login(access_token, user); // Use the auth context login function
 
-      // Store tokens and basic user info
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
-      localStorage.setItem('user', JSON.stringify({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }));
-
-      // Redirect to previous page or dashboard
-     // Redirect based on user role
-if (user.role === 'superadmin') {
-  navigate('/admin/AdminDashboard', { 
-    replace: true,
-    state: { loginSuccess: true }
-  });
-} else {
-  navigate('/member/Dashboard', { 
-    replace: true,
-    state: { loginSuccess: true }
-  });
-}
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 
-                          err.response?.data?.message || 
-                          'Login failed. Please check your credentials and try again.';
-      
-      setErrors({ form: errorMessage });
-
-      // Clear password field on error
-      setForm(prev => ({ ...prev, password: '' }));
+      if (user.role === 'superadmin') {
+        navigate('/admin/AdminDashboard', { replace: true });
+      } else {
+        navigate('/member/Dashboard', { replace: true });
+      }
+    } catch (err) {
+      setErrors({ form: 'Invalid credentials' });
+      setCredentials((prev) => ({ ...prev, password: '' }));
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +115,7 @@ if (user.role === 'superadmin') {
               className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                 errors.username ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
               }`}
-              value={form.username}
+              value={credentials.username}
               onChange={handleChange}
               required
               autoComplete="username"
@@ -161,14 +132,14 @@ if (user.role === 'superadmin') {
             </label>
             <div className="relative">
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 id="password"
                 name="password"
                 placeholder="Enter your password"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
                 }`}
-                value={form.password}
+                value={credentials.password}
                 onChange={handleChange}
                 required
                 autoComplete="current-password"
@@ -177,17 +148,12 @@ if (user.role === 'superadmin') {
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
-                  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                  </svg>
+                  <EyeOffIcon />
                 ) : (
-                  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
+                  <EyeIcon />
                 )}
               </button>
             </div>
@@ -197,58 +163,32 @@ if (user.role === 'superadmin') {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <label className="flex items-center text-sm text-gray-700">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                Remember me
-              </label>
-            </div>
+              <span className="ml-2">Remember me</span>
+            </label>
 
-            <div className="text-sm">
-              <a href="/forgot-password" className="font-medium text-emerald-600 hover:text-emerald-500">
-                Forgot password?
-              </a>
-            </div>
+            <a href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-500">
+              Forgot password?
+            </a>
           </div>
 
           <button
             type="submit"
-            disabled={isLoading || !form.username || !form.password}
+            disabled={isLoading || !credentials.username || !credentials.password}
             className={`w-full py-2.5 rounded-lg transition flex justify-center items-center ${
-              isLoading || !form.username || !form.password
+              isLoading || !credentials.username || !credentials.password
                 ? 'bg-emerald-400 cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-700'
             } text-white font-medium`}
           >
             {isLoading ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Logging in...
-              </>
+              <LoadingSpinner />
             ) : (
               'Sign in'
             )}
@@ -261,16 +201,14 @@ if (user.role === 'superadmin') {
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                New to our platform?
-              </span>
+              <span className="px-2 bg-white text-gray-500">New to our platform?</span>
             </div>
           </div>
 
           <div className="mt-4 text-center">
             <a
               href="/register"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-emerald-700 bg-emerald-100 hover:bg-emerald-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-emerald-700 bg-emerald-100 hover:bg-emerald-200"
             >
               Create an account
             </a>
@@ -280,5 +218,33 @@ if (user.role === 'superadmin') {
     </div>
   );
 };
+
+// Helper components (keep the same as in your original)
+const LoadingSpinner = () => (
+  <>
+    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      ></path>
+    </svg>
+    Logging in...
+  </>
+);
+
+const EyeIcon = () => (
+  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+  </svg>
+);
 
 export default Login;
