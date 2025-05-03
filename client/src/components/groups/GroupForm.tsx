@@ -1,14 +1,18 @@
 import { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+// import axios from 'axios';
 
-type GroupFormProps = {
-  onCreate?: (data: any) => void;
+type GroupPayload = {
+  name: string;
+  description: string;
+  target_amount: number | string;
 };
 
-const GroupForm = ({ onCreate }: GroupFormProps) => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+type Props = {
+  onSuccess: () => void;       // accept onSuccess
+};
+
+const GroupForm = ({ onSuccess }: Props) => {
+  const [group, setGroup] = useState<GroupPayload>({
     name: "",
     description: "",
     target_amount: "",
@@ -17,102 +21,72 @@ const GroupForm = ({ onCreate }: GroupFormProps) => {
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setGroup((g) => ({ ...g, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (onCreate) {
-      // For optional callback usage
-      onCreate({
-        ...formData,
-        target_amount: parseFloat(formData.target_amount),
-      });
-      setFormData({ name: "", description: "", target_amount: "" });
-      return;
-    }
-
     setSubmitting(true);
 
     try {
-      const payload = {
-        ...formData,
-        target_amount: parseFloat(formData.target_amount),
-      };
-
-      await axios.post("/api/groups", payload);
-      navigate("/member/my-groups");
+      const res = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          ...group, 
+          target_amount: parseFloat(String(group.target_amount)) 
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create");
+      setGroup({ name: "", description: "", target_amount: "" });
+      onSuccess();            // call onSuccess
     } catch (err: any) {
-      console.error("Error creating group:", err);
-      setError(err.response?.data?.message || "Something went wrong.");
+      setError(err.message || "Error creating group");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white shadow-md rounded-xl p-6">
-      <h2 className="text-2xl font-bold mb-4">Create a New Group</h2>
-      {error && <div className="text-red-500 mb-3">{error}</div>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Group Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-700 focus:border-emerald-700"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            required
-            value={formData.description}
-            onChange={handleChange}
-            rows={3}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-700 focus:border-emerald-700"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="target_amount" className="block text-sm font-medium text-gray-700">
-            Target Amount
-          </label>
-          <input
-            type="number"
-            id="target_amount"
-            name="target_amount"
-            required
-            min="0"
-            step="0.01"
-            value={formData.target_amount}
-            onChange={handleChange}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-700 focus:border-emerald-700"
-          />
-        </div>
-
+    <form onSubmit={handleSubmit} className="bg-white p-4 rounded-xl shadow-md mb-6">
+      <div className="flex flex-wrap gap-4">
+        <input
+          name="name"
+          placeholder="Name"
+          value={group.name}
+          onChange={handleChange}
+          className="flex-1 border p-2 rounded"
+          required
+        />
+        <input
+          name="description"
+          placeholder="Description"
+          value={group.description}
+          onChange={handleChange}
+          className="flex-1 border p-2 rounded"
+          required
+        />
+        <input
+          name="target_amount"
+          type="number"
+          placeholder="Target"
+          value={group.target_amount}
+          onChange={handleChange}
+          className="w-32 border p-2 rounded"
+          required
+        />
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2 px-4 bg-emerald-700 text-white rounded-md hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+          className="bg-emerald-700 text-white px-4 py-2 rounded"
         >
-          {submitting ? "Creating..." : "Create Group"}
+          {submitting ? "Creating..." : "Create"}
         </button>
-      </form>
-    </div>
+      </div>
+      {error && <p className="text-red-500 mt-2">{error}</p>}
+    </form>
   );
 };
 

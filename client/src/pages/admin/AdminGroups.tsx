@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import GroupForm from "../../components/groups/GroupForm";
+import CreateGroupForm from "../../components/groups/CreateGroupForm";
 import GroupTable from "../../components/groups/GroupTable";
 
 type Group = {
@@ -11,22 +11,12 @@ type Group = {
   admin_name?: string;
 };
 
-const AdminGroups: React.FC = () => {
+const CreateGroup: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
 
   const fetchGroups = async () => {
-    const res = await fetch("/api/groups");
-    const data: Group[] = await res.json();
-    setGroups(data);
-  };
-
-  const createGroup = async (group: Omit<Group, "id" | "current_amount" | "admin_name">) => {
-    const res = await fetch("/api/groups", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(group),
-    });
-    if (res.ok) fetchGroups();
+    const res = await fetch("/api/groups/my-groups");
+    if (res.ok) setGroups(await res.json());
   };
 
   const deleteGroup = async (id: number) => {
@@ -40,18 +30,16 @@ const AdminGroups: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold">All Groups</h2>
-      <GroupForm onCreate={createGroup} />
+      <h2 className="text-2xl font-semibold text-emerald-700 mb-4 text-left">Create a New Group</h2>
+      <CreateGroupForm onSuccess={fetchGroups} />   {/* now matches prop */}
+      <h2 className="text-2xl font-semibold text-emerald-700 mb-4 text-left">Group Details</h2>
       <GroupTable
         groups={groups}
         onDelete={deleteGroup}
-        onEdit={(group) => {
-          /* TODO: hook up admin edit flow */
-          console.log("Admin edit:", group);
-        }}
+        onEdit={(g) => console.log("Edit", g)}
       />
     </div>
   );
 };
 
-export default AdminGroups;
+export default CreateGroup;

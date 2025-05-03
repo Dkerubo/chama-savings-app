@@ -23,7 +23,10 @@ class Group(db.Model):
     # Relationships
     admin = db.relationship('User', back_populates='admin_groups')
     members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
-
+    contributions = db.relationship("Contribution", back_populates="group", cascade="all, delete-orphan")
+    loans = db.relationship("Loan", back_populates="group", cascade="all, delete-orphan")
+    investments = db.relationship("Investment", back_populates="group", cascade="all, delete-orphan")
+    
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
         self.admin_id = admin_id

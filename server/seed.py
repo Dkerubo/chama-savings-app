@@ -1,10 +1,15 @@
-# seed.py
-
 import uuid
 import time
 from app import create_app
 from app.models.user import User
 from app.extensions import db
+from app.models.user import User
+from app.models.group import Group
+from app.models.member import Member
+from app.models.contribution import Contribution
+from app.models.loan import Loan
+from app.models.loan_repayment import LoanRepayment
+from app.models.investment import Investment
 
 def generate_unique_receipt_number():
     """Generate a unique receipt number based on timestamp and UUID."""
