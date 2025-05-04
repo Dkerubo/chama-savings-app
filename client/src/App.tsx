@@ -3,6 +3,7 @@ import "./App.scss";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { Toaster } from 'react-hot-toast';
 
 // Layout Components
 import Navbar from "./components/Navbar";
@@ -38,11 +39,14 @@ import CreateGroup from "./pages/member/CreateGroup";
 import Contributions from "./pages/member/Contributions";
 import Transactions from "./pages/member/Transactions";
 import Loans from "./pages/member/Loans";
+//import Profile from "./pages/member/Profile";
 
 function App() {
   return (
+    
     <AuthProvider>
       <Router>
+      <Toaster position="top-right" reverseOrder={false} />
         <div className="flex flex-col min-h-screen w-full">
           <Navbar />
           <main className="flex-grow">
@@ -54,6 +58,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/logout" element={<Logout />} />
+              
 
               {/* Admin Routes - Protected with admin role */}
               <Route
@@ -73,6 +78,8 @@ function App() {
                 <Route path="meetings" element={<AdminMeetings />} />
                 <Route path="transactions" element={<AdminTransactions />} />
                 <Route path="contributions" element={<AdminContributions />} />
+                {/* <Route path="/profile" element={<Profile />} /> */}
+                
               </Route>
 
               {/* Member Routes - Protected (any authenticated user) */}
@@ -92,6 +99,7 @@ function App() {
                 <Route path="contributions" element={<Contributions />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="loans" element={<Loans />} />
+                {/* <Route path="/profile" element={<Profile />} /> */}
               </Route>
 
               {/* Catch-all route for unauthorized/not found */}

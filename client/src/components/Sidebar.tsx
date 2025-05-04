@@ -19,7 +19,7 @@ const Sidebar = ({ role }: Props) => {
 
   const memberLinks = [
     { label: "Dashboard", path: "/member/dashboard" },
-    { label: "Users", path: "/member/users" }, // Added here
+    { label: "My Profile", path: "/member/Profile" },
     { label: "Create Group", path: "/member/create-group" },
     { label: "My Groups", path: "/member/groups" },
     { label: "Contributions", path: "/member/contributions" },

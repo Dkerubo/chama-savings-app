@@ -1,12 +1,13 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api';
 
 interface FormState {
   username: string;
   email: string;
   password: string;
-  phone_number?: string;
+  phone_number: string;
 }
 
 const Register: React.FC = () => {
@@ -16,17 +17,18 @@ const Register: React.FC = () => {
     password: '',
     phone_number: ''
   });
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const validateField = (name: string, value: string) => {
     const newErrors = { ...errors };
-    
+
     switch (name) {
       case 'username':
         if (!value.match(/^[a-zA-Z0-9_]{3,20}$/)) {
-          newErrors.username = 'Username must be 3-20 characters (letters, numbers, underscores)';
+          newErrors.username = '3-20 characters (letters, numbers, underscores)';
         } else {
           delete newErrors.username;
         }
@@ -40,9 +42,16 @@ const Register: React.FC = () => {
         break;
       case 'password':
         if (value.length < 8) {
-          newErrors.password = 'Password must be at least 8 characters';
+          newErrors.password = 'Must be at least 8 characters';
         } else {
           delete newErrors.password;
+        }
+        break;
+      case 'phone_number':
+        if (!value.match(/^\+?\d{9,15}$/)) {
+          newErrors.phone_number = 'Enter a valid phone number';
+        } else {
+          delete newErrors.phone_number;
         }
         break;
     }
@@ -64,30 +73,27 @@ const Register: React.FC = () => {
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
-    
-    // Validate all fields before submission
-    const isValid = Object.entries(form).every(([name, value]) => {
-      if (name === 'phone_number') return true; // Skip optional field
-      return validateField(name, value);
-    });
+
+    const isValid = Object.entries(form).every(([name, value]) =>
+      validateField(name, value)
+    );
 
     if (!isValid || Object.keys(errors).length > 0) {
+      toast.error('Please correct the highlighted errors.');
       return;
     }
 
     setErrors({});
     setIsLoading(true);
 
+    const toastId = toast.loading('Registering your account...');
+
     try {
-      const response = await api.post('/auth/register', {
-        username: form.username,
-        email: form.email,
-        password: form.password,
-        phone_number: form.phone_number || undefined
-      });
+      const response = await api.post('/auth/register', form);
 
       if (response.status === 201) {
-        // Auto-login after registration
+        toast.success('Registration successful! Logging in...', { id: toastId });
+
         const loginResponse = await api.post('/auth/login', {
           username: form.username,
           password: form.password
@@ -97,40 +103,23 @@ const Register: React.FC = () => {
 
         localStorage.setItem('token', access_token);
         localStorage.setItem('refresh_token', refresh_token);
-        localStorage.setItem('user', JSON.stringify({
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role
-        }));
+        localStorage.setItem('user', JSON.stringify(user));
 
-        // Redirect based on user role
-if (user.role === 'superadmin') {
-  navigate('/admin/AdminDashboard', { 
-    state: { registrationSuccess: true },
-    replace: true
-  });
-} else {
-  navigate('/member/Dashboard', { 
-    state: { registrationSuccess: true },
-    replace: true
-  });
-}
+        navigate(user.role === 'superadmin' ? '/admin/AdminDashboard' : '/member/Dashboard', {
+          state: { registrationSuccess: true },
+          replace: true
+        });
       }
     } catch (err: any) {
+      toast.error('Registration failed.', { id: toastId });
+
       if (err.response?.data?.details) {
-        // Handle backend validation errors
-        const backendErrors = err.response.data.details;
-        if (typeof backendErrors === 'string') {
-          setErrors({ form: backendErrors });
-        } else {
-          setErrors(backendErrors);
-        }
+        setErrors(typeof err.response.data.details === 'string'
+          ? { form: err.response.data.details }
+          : err.response.data.details);
       } else {
         setErrors({
-          form: err.response?.data?.error || 
-               err.message || 
-               'Registration failed. Please try again.'
+          form: err.response?.data?.error || err.message || 'Something went wrong.'
         });
       }
     } finally {
@@ -140,120 +129,51 @@ if (user.role === 'superadmin') {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-emerald-900 via-emerald-600 to-emerald-700">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-4">Create an Account</h2>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+        <h2 className="text-3xl font-bold text-center text-emerald-700 mb-6">Sign Up</h2>
 
         {errors.form && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-            {errors.form}
-          </div>
+          <div className="mb-4 bg-red-100 text-red-700 p-3 rounded text-sm">{errors.form}</div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-4" noValidate>
+        <form onSubmit={handleRegister} className="space-y-5" noValidate>
+          {[
+            { id: 'username', label: 'Username', type: 'text', placeholder: 'Your username' },
+            { id: 'email', label: 'Email Address', type: 'email', placeholder: 'Your email' },
+            { id: 'password', label: 'Password', type: 'password', placeholder: 'Minimum 8 characters' },
+            { id: 'phone_number', label: 'Phone Number', type: 'tel', placeholder: 'e.g. +254712345678' }
+          ].map(({ id, label, type, placeholder }) => (
+            <div key={id}>
+              <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+              <input
+                id={id}
+                name={id}
+                type={type}
+                placeholder={placeholder}
+                value={(form as any)[id]}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  errors[id] ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
+                }`}
+              />
+              {errors[id] && <p className="mt-1 text-sm text-red-600">{errors[id]}</p>}
+            </div>
+          ))}
 
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              placeholder="Enter your username (3-20 characters)"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.username ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
-              }`}
-              value={form.username}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              minLength={3}
-              maxLength={20}
-              pattern="[a-zA-Z0-9_]+"
-              autoComplete="username"
-            />
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Enter your email"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
-              }`}
-              value={form.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              autoComplete="email"
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter your password (min 8 characters)"
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.password ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
-              }`}
-              value={form.password}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number (Optional)
-            </label>
-            <input
-              type="tel"
-              id="phone_number"
-              name="phone_number"
-              placeholder="Enter your phone number"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              value={form.phone_number}
-              onChange={handleChange}
-              autoComplete="tel"
-            />
-          </div>
-
-           <button
+          <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 disabled:bg-emerald-400"
+            className="w-full bg-emerald-600 text-white font-semibold py-2 rounded hover:bg-emerald-700 disabled:bg-emerald-400 transition"
           >
-            {isLoading ? 'Creating Account...' : 'Register'}
+            {isLoading ? 'Registering...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-center mt-4">
-          Already have an account?{' '}
-          <a href="/login" className="text-emerald-600 hover:underline">
-            Login
-          </a>
+        <p className="text-center text-sm mt-5 text-gray-600">
+          Already registered?{' '}
+          <a href="/login" className="text-emerald-600 font-medium hover:underline">Login</a>
         </p>
       </div>
     </div>

@@ -5,6 +5,11 @@ interface User {
   username: string;
   email: string;
   role: string;
+  phone_number?: string;
+  group?: {
+    id: number;
+    name: string;
+  };
   // Add other user properties as needed
 }
 
