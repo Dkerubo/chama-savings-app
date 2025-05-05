@@ -1,12 +1,18 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
+import os
+from datetime import datetime
 from app.models.group import Group
 from app.models.member import Member
 from app.extensions import db
 
 group_bp = Blueprint("group_bp", __name__, url_prefix="/api/groups")
 
-# ADMIN: Get all groups with optional filters
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+
 @group_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_all_groups():
@@ -26,8 +32,6 @@ def get_all_groups():
     groups = query.all()
     return jsonify([g.serialize(include_members=True) for g in groups]), 200
 
-
-# MEMBER: Get own groups
 @group_bp.route("/my-groups", methods=["GET"])
 @jwt_required()
 def get_my_groups():
@@ -36,31 +40,31 @@ def get_my_groups():
     groups = [m.group.serialize(include_members=False) for m in memberships if m.group]
     return jsonify(groups), 200
 
-
-# MEMBER: Create a group
 @group_bp.route("/", methods=["POST"])
 @jwt_required()
 def create_group():
     current_user = get_jwt_identity()
     data = request.get_json()
 
-    name = data.get("name")
-    description = data.get("description")
-    target_amount = data.get("target_amount")
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
 
-    if not name or not description or target_amount is None:
-        return jsonify({"error": "All fields are required."}), 400
+    required_fields = ["name", "description", "target_amount"]
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return jsonify({"error": f"{field.replace('_', ' ').title()} is required"}), 400
 
     try:
         group = Group(
-            name=name,
-            description=description,
-            target_amount=target_amount,
+            name=data["name"],
+            description=data["description"],
+            target_amount=data["target_amount"],
             admin_id=current_user["id"],
             is_public=data.get("is_public", True),
             meeting_schedule=data.get("meeting_schedule"),
             location=data.get("location"),
             logo_url=data.get("logo_url"),
+            status=data.get("status", "active")
         )
         db.session.add(group)
         db.session.commit()
@@ -77,20 +81,62 @@ def create_group():
 
         return jsonify(group.serialize(include_members=True)), 201
 
-    except Exception as e:
+    except ValueError as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error creating group: {str(e)}")
+        return jsonify({"error": "Failed to create group"}), 500
 
-
-# MEMBER: Get a specific group
 @group_bp.route("/<int:group_id>", methods=["GET"])
 @jwt_required()
 def get_group(group_id):
     group = Group.query.get_or_404(group_id)
     return jsonify(group.serialize(include_members=True)), 200
 
+@group_bp.route("/<int:group_id>", methods=["PUT"])
+@jwt_required()
+def update_group(group_id):
+    current_user = get_jwt_identity()
+    group = Group.query.get_or_404(group_id)
+    
+    if group.admin_id != current_user["id"] and current_user["role"] != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
 
-# MEMBER: Delete own group (ADMIN can delete any)
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    try:
+        if "name" in data:
+            group.name = data["name"]
+        if "description" in data:
+            group.description = data["description"]
+        if "target_amount" in data:
+            group.target_amount = data["target_amount"]
+        if "is_public" in data:
+            group.is_public = data["is_public"]
+        if "meeting_schedule" in data:
+            group.meeting_schedule = data["meeting_schedule"]
+        if "location" in data:
+            group.location = data["location"]
+        if "status" in data:
+            group.status = data["status"]
+        if "logo_url" in data:
+            group.logo_url = data["logo_url"]
+
+        db.session.commit()
+        return jsonify(group.serialize(include_members=True)), 200
+        
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating group: {str(e)}")
+        return jsonify({"error": "Failed to update group"}), 500
+
 @group_bp.route("/<int:group_id>", methods=["DELETE"])
 @jwt_required()
 def delete_group(group_id):
@@ -100,12 +146,37 @@ def delete_group(group_id):
     if group.admin_id != current_user["id"] and current_user["role"] != "admin":
         return jsonify({"error": "Unauthorized"}), 403
 
-    db.session.delete(group)
-    db.session.commit()
-    return jsonify({"message": "Group deleted"}), 200
+    try:
+        db.session.delete(group)
+        db.session.commit()
+        return jsonify({"message": "Group deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting group: {str(e)}")
+        return jsonify({"error": "Failed to delete group"}), 500
 
+@group_bp.route("/upload", methods=["POST"])
+@jwt_required()
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        os.makedirs(upload_folder, exist_ok=True)
+        filepath = os.path.join(upload_folder, filename)
+        file.save(filepath)
+        
+        file_url = url_for('static', filename=f'uploads/{filename}', _external=True)
+        return jsonify({"url": file_url}), 200
+    
+    return jsonify({"error": "Invalid file type"}), 400
 
-# ADMIN or GROUP ADMIN: Remove member from group
 @group_bp.route("/<int:group_id>/remove-member/<int:user_id>", methods=["DELETE"])
 @jwt_required()
 def remove_member(group_id, user_id):
@@ -122,6 +193,11 @@ def remove_member(group_id, user_id):
     if not member:
         return jsonify({"error": "Member not found in group"}), 404
 
-    db.session.delete(member)
-    db.session.commit()
-    return jsonify({"message": "Member removed"}), 200
+    try:
+        db.session.delete(member)
+        db.session.commit()
+        return jsonify({"message": "Member removed"}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error removing member: {str(e)}")
+        return jsonify({"error": "Failed to remove member"}), 500

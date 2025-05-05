@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from dotenv import load_dotenv
 from flask_cors import CORS
@@ -12,7 +13,17 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object("app.config.Config")
 
-    # Initialize extensions and routes
+    # Upload folder settings
+    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    app.config.update({
+        'UPLOAD_FOLDER': upload_folder,
+        'ALLOWED_EXTENSIONS': {'png', 'jpg', 'jpeg', 'gif'},
+        'MAX_CONTENT_LENGTH': 2 * 1024 * 1024  # 2MB
+    })
+
+    # Initialize extensions and components
     register_extensions(app)
     register_blueprints(app)
     register_error_handlers(app)
@@ -20,10 +31,11 @@ def create_app():
 
     return app
 
+
 def register_extensions(app):
     """Register Flask extensions with proper configuration"""
 
-    # ✅ Configure CORS (FIXED: allowing frontend origin)
+    # CORS for frontend connection
     CORS(
         app,
         resources={r"/api/*": {"origins": ["http://127.0.0.1:5173", "http://localhost:5173"]}},
@@ -34,10 +46,10 @@ def register_extensions(app):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # JWT setup
+    # JWT
     JWTManager(app)
 
-    # WebSocket setup
+    # WebSocket
     socketio.init_app(
         app,
         cors_allowed_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -45,15 +57,16 @@ def register_extensions(app):
         engineio_logger=True
     )
 
-    # Import models for SQLAlchemy registration
+    # Import models to register with SQLAlchemy
     from app.models import (
         user, member, group, contribution, loan, loan_repayment,
-        investment, investment_payment, notification, invitations, action_items, message_threads, goals,
-        recurrence_rules, meetings
+        investment, investment_payment, notification, invitations,
+        action_items, message_threads, goals, recurrence_rules, meetings
     )
 
+
 def register_blueprints(app):
-    """Register all application blueprints with consistent URL prefixes"""
+    """Register all application blueprints"""
     from app.routes.auth import auth_bp
     from app.routes.user import user_bp
     from app.routes.group import group_bp
@@ -64,7 +77,6 @@ def register_blueprints(app):
     from app.routes.investment_payment_routes import payment_bp
     from app.routes.notification import notification_bp
     from app.routes.messaging_routes import messaging_bp
-    # from app.routes.membership_routes import membership_bp
     from app.routes.invitations_routes import invitations_bp
     from app.routes.action_items_routes import action_bp
     from app.routes.goals_routes import goals_bp
@@ -81,18 +93,17 @@ def register_blueprints(app):
     app.register_blueprint(payment_bp, url_prefix="/api/payments")
     app.register_blueprint(notification_bp, url_prefix="/api/notifications")
     app.register_blueprint(messaging_bp, url_prefix="/api/messages")
-    # app.register_blueprint(membership_bp, url_prefix="/api/memberships")
     app.register_blueprint(invitations_bp, url_prefix="/api/invitations")
     app.register_blueprint(action_bp, url_prefix="/api/action-items")
     app.register_blueprint(goals_bp, url_prefix="/api/goals")
     app.register_blueprint(recurrence_bp, url_prefix="/api/recurrence-rules")
     app.register_blueprint(meetings_bp, url_prefix="/api/meetings")
 
+
 def register_root_route(app):
-    """Register the root endpoint with API documentation"""
-    @app.route('/')
+    """Root route showing basic API info and endpoints"""
+    @app.route("/")
     def home():
-        """Root endpoint that lists all available API endpoints"""
         return {
             "api": {
                 "version": "1.0.0",
