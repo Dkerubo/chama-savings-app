@@ -8,6 +8,7 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string;
+  profile_picture?: string;
 }
   
   export interface UserFormProps {

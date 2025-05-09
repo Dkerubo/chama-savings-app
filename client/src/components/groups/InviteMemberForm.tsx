@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../api';
+import api from '../../api/api';
 import { Modal, Form, Input, Button, message, Select, Typography } from 'antd';
 
 const { TextArea } = Input;

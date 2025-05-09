@@ -62,3 +62,6 @@ Thumbs.db
 
 # Node modules (if frontend assets are involved)
 node_modules/
+
+# folder for future updates
+updateforlater/

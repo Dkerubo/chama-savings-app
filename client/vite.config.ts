@@ -7,5 +7,6 @@ export default defineConfig({
   build: {
     // Disable service worker in dev
     sourcemap: true
+    
   }
 })

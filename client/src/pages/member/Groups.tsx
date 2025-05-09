@@ -14,7 +14,7 @@ const MemberGroups: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
 
   const fetchGroups = async () => {
-    const res = await fetch("/api/groups/my-groups");
+    const res = await fetch("/api/groups");
     const data: Group[] = await res.json();
     setGroups(data);
   };

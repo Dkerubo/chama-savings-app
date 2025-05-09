@@ -4,6 +4,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from 'react-hot-toast';
+import { GroupApiProvider } from './context/GroupApiContext';
+import { NotificationProvider } from './context/NotificationContext';
+
 
 // Layout Components
 import Navbar from "./components/Navbar";
@@ -39,12 +42,15 @@ import CreateGroup from "./pages/member/CreateGroup";
 import Contributions from "./pages/member/Contributions";
 import Transactions from "./pages/member/Transactions";
 import Loans from "./pages/member/Loans";
+import Profile from "./pages/member/Profile";
 //import Profile from "./pages/member/Profile";
 
 function App() {
   return (
     
     <AuthProvider>
+      <GroupApiProvider>
+      <NotificationProvider>
       <Router>
       <Toaster position="top-right" reverseOrder={false} />
         <div className="flex flex-col min-h-screen w-full">
@@ -94,6 +100,7 @@ function App() {
                 <Route index element={<MemberDashboard />} />
                 <Route path="dashboard" element={<MemberDashboard />} />
                 <Route path="groups" element={<MemberGroups />} />
+                <Route path="profile" element={<Profile />} />
                 <Route path="groups/:id" element={<GroupDetails />} />
                 <Route path="create-group" element={<CreateGroup />} />
                 <Route path="contributions" element={<Contributions />} />
@@ -109,6 +116,8 @@ function App() {
           <Footer />
         </div>
       </Router>
+      </NotificationProvider>
+      </GroupApiProvider>
     </AuthProvider>
   );
 }

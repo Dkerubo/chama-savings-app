@@ -1,252 +1,144 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../api';
-import {
-  Modal,
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Switch,
-  Select,
-  Upload,
-  message,
-} from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { CreateGroupPayload } from '../../types/group';
 
-const { TextArea } = Input;
-const { Option } = Select;
-
-interface GroupFormProps {
-  visible: boolean;
-  onCancel: () => void;
-  onSuccess: () => void;
-  groupToEdit?: any;
+interface CreateGroupFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: CreateGroupPayload) => Promise<void>;
+  isSubmitting: boolean;
 }
 
-const CreateGroupForm: React.FC<GroupFormProps> = ({
-  visible,
-  onCancel,
-  onSuccess,
-  groupToEdit,
-}) => {
-  const [form] = Form.useForm();
+const initialFormState = (user_id: number): CreateGroupPayload => ({
+  name: '',
+  description: '',
+  target_amount: 0,
+  meeting_schedule: '',
+  location: '',
+  logo_url: '',
+  is_public: false,
+  user_id,
+});
+
+const CreateGroupForm = ({ isOpen, onClose, onSubmit, isSubmitting }: CreateGroupFormProps) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [fileList, setFileList] = useState<any[]>([]);
+  const [formData, setFormData] = useState<CreateGroupPayload>(() =>
+    initialFormState(user?.id || 0)
+  );
 
   useEffect(() => {
-    if (groupToEdit) {
-      form.setFieldsValue({
-        ...groupToEdit,
-        target_amount: parseFloat(groupToEdit.target_amount),
-        is_public: groupToEdit.is_public ?? true,
-        status: groupToEdit.status ?? 'active',
-      });
-
-      if (groupToEdit.logo_url) {
-        setFileList([
-          {
-            uid: '-1',
-            name: 'Group Logo',
-            status: 'done',
-            url: groupToEdit.logo_url,
-          },
-        ]);
-      }
-    } else {
-      form.resetFields();
-      setFileList([]);
+    if (user?.id && isOpen) {
+      setFormData(initialFormState(user.id));
     }
-  }, [groupToEdit, form]);
+  }, [user, isOpen]);
 
-  const handleSubmit = async (values: any) => {
-    try {
-      setLoading(true);
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, type, value } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
 
-      let logoUrl = groupToEdit?.logo_url;
-
-      if (fileList.length && fileList[0]?.originFileObj) {
-        const formData = new FormData();
-        formData.append('file', fileList[0].originFileObj);
-
-        const { data } = await api.post('/api/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        logoUrl = data.url;
-      }
-
-      const payload = {
-        ...values,
-        target_amount: values.target_amount.toString(),
-        is_public: values.is_public ?? true,
-        admin_id: user?.id,
-        logo_url: logoUrl,
-      };
-
-      if (groupToEdit) {
-        await api.put(`/api/groups/${groupToEdit.id}`, payload);
-        message.success('Group updated successfully');
-      } else {
-        await api.post('/api/groups', payload);
-        message.success('Group created successfully');
-      }
-
-      form.resetFields();
-      setFileList([]);
-      onSuccess();
-      onCancel();
-    } catch (error: any) {
-      console.error('Error saving group:', error);
-      message.error(
-        error.response?.data?.error || 'Failed to save group. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : type === 'number' ? parseFloat(value) : value,
+    }));
   };
 
-  const uploadProps = {
-    onRemove: () => setFileList([]),
-    beforeUpload: (file: any) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return false;
-      }
-
-      const isLt2M = file.size / 1024 / 1024 < 2;
-      if (!isLt2M) {
-        message.error('Image must be smaller than 2MB!');
-        return false;
-      }
-
-      setFileList([file]);
-      return false;
-    },
-    fileList,
-    maxCount: 1,
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
   };
+
+  if (!isOpen) return null;
 
   return (
-    <Modal
-      title={groupToEdit ? 'Edit Group' : 'Create New Group'}
-      open={visible}
-      onCancel={() => {
-        form.resetFields();
-        onCancel();
-      }}
-      footer={[
-        <Button key="cancel" onClick={onCancel}>
-          Cancel
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          onClick={() => form.submit()}
-          loading={loading}
-        >
-          {groupToEdit ? 'Update' : 'Create'}
-        </Button>,
-      ]}
-      width={700}
-      destroyOnClose
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        initialValues={{
-          is_public: true,
-          status: 'active',
-        }}
-      >
-        <Form.Item
-          label="Group Name"
-          name="name"
-          rules={[
-            { required: true, message: 'Please input the group name!' },
-            { min: 3, message: 'Group name must be at least 3 characters' },
-          ]}
-        >
-          <Input placeholder="e.g. Investment Club 2023" />
-        </Form.Item>
-
-        <Form.Item
-          label="Description"
-          name="description"
-          rules={[{ required: true, message: 'Please input the group description!' }]}
-        >
-          <TextArea rows={4} placeholder="Describe the purpose of this group" />
-        </Form.Item>
-
-        <Form.Item
-          label="Target Amount"
-          name="target_amount"
-          rules={[
-            { required: true, message: 'Please input the target amount!' },
-            { type: 'number', min: 1, message: 'Amount must be positive' },
-          ]}
-        >
-          <InputNumber
-            style={{ width: '100%' }}
-            min={1}
-            formatter={(value) =>
-              `Kshs ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-            }
-            parser={(value: string | undefined) =>
-              Number((value || '').replace(/[^\d.]/g, ''))
-            }
-          />
-        </Form.Item>
-
-        <div style={{ display: 'flex', gap: 16 }}>
-          <Form.Item
-            label="Meeting Schedule"
-            name="meeting_schedule"
-            style={{ flex: 1 }}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-emerald-700">Create New Group</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            disabled={isSubmitting}
           >
-            <Input placeholder="e.g. Every 1st Monday" />
-          </Form.Item>
-          <Form.Item label="Location" name="location" style={{ flex: 1 }}>
-            <Input placeholder="e.g. Online or Physical address" />
-          </Form.Item>
+            &times;
+          </button>
         </div>
 
-        <Form.Item
-          label="Group Logo"
-          name="logo"
-          valuePropName="fileList"
-          getValueFromEvent={() => fileList}
-        >
-          <Upload {...uploadProps} listType="picture">
-            <Button icon={<UploadOutlined />}>Upload Logo</Button>
-          </Upload>
-        </Form.Item>
+        <form onSubmit={handleSubmit}>
+          {[
+            { id: 'name', label: 'Group Name*', required: true, type: 'text' },
+            { id: 'description', label: 'Description', type: 'textarea' },
+            { id: 'target_amount', label: 'Target Amount*', required: true, type: 'number' },
+            { id: 'meeting_schedule', label: 'Meeting Schedule', type: 'text' },
+            { id: 'location', label: 'Location', type: 'text' },
+            { id: 'logo_url', label: 'Logo URL', type: 'url' },
+          ].map(({ id, label, type = 'text', required }) => (
+            <div className="mb-4" key={id}>
+              <label htmlFor={id} className="block text-gray-700 mb-2">
+                {label}
+              </label>
+              {type === 'textarea' ? (
+                <textarea
+                  id={id}
+                  name={id}
+                  value={(formData as any)[id]}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  disabled={isSubmitting}
+                />
+              ) : (
+                <input
+                  id={id}
+                  name={id}
+                  value={(formData as any)[id]}
+                  onChange={handleChange}
+                  type={type}
+                  required={required}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  disabled={isSubmitting}
+                />
+              )}
+            </div>
+          ))}
 
-        <div style={{ display: 'flex', gap: 16 }}>
-          <Form.Item
-            label="Visibility"
-            name="is_public"
-            valuePropName="checked"
-          >
-            <Switch checkedChildren="Public" unCheckedChildren="Private" />
-          </Form.Item>
+          {/* Is Public */}
+          <div className="mb-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="is_public"
+                checked={formData.is_public}
+                onChange={handleChange}
+                className="form-checkbox h-5 w-5 text-emerald-600"
+                disabled={isSubmitting}
+              />
+              <span className="ml-2 text-gray-700">Public Group</span>
+            </label>
+          </div>
 
-          {groupToEdit && (
-            <Form.Item label="Status" name="status" style={{ flex: 1 }}>
-              <Select>
-                <Option value="active">Active</Option>
-                <Option value="inactive">Inactive</Option>
-              </Select>
-            </Form.Item>
-          )}
-        </div>
-      </Form>
-    </Modal>
+          {/* Buttons */}
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creating...' : 'Create Group'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

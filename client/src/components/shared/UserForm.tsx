@@ -1,261 +1,153 @@
-import { useState, ChangeEvent, FormEvent } from "react";
-import { User } from "../../types";
-import Alert from "../shared/Alert";
+import React, { useState, useEffect } from 'react';
+import { User } from '../../types';
+import { createUser, updateUser } from '../../api/userApi';
 
-interface UserFormData {
-  id?: number;
-  username: string;
-  email: string;
-  role: string;
-  password: string;
-  phone_number: string | null;
+interface UserFormProps {
+  user?: User;
+  onSuccess: () => void;
+  onCancel: () => void;
 }
 
-type Props = {
-  user: Partial<User>;
-  onSubmit: (user: Partial<User>) => void;
-  onCancel: () => void;
-};
-
-const UserForm = ({ user, onSubmit, onCancel }: Props) => {
-  const [form, setForm] = useState<UserFormData>({
-    id: user.id ?? undefined,
-    username: user.username ?? "",
-    email: user.email ?? "",
-    role: user.role ?? "member",
-    password: "",
-    phone_number: user.phone_number ?? null,
+const UserForm: React.FC<UserFormProps> = ({ user, onSuccess, onCancel }) => {
+  const [formData, setFormData] = useState<Omit<User, 'id'> & { password: string }>({
+    username: '',
+    email: '',
+    password: '',
+    role: 'member',
   });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [formAlert, setFormAlert] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-
-  const validateField = (name: string, value: string | null) => {
-    const newErrors = { ...errors };
-
-    switch (name) {
-      case "username":
-        if (!value?.trim()) {
-          newErrors.username = "Username is required";
-        } else if (!/^[a-zA-Z0-9_]{3,20}$/.test(value)) {
-          newErrors.username = "Must be 3–20 characters (letters, numbers, underscores)";
-        } else {
-          delete newErrors.username;
-        }
-        break;
-      case "email":
-        if (!value?.trim()) {
-          newErrors.email = "Email is required";
-        } else if (!/^[^@]+@[^@]+\.[^@]+$/.test(value)) {
-          newErrors.email = "Invalid email format";
-        } else {
-          delete newErrors.email;
-        }
-        break;
-      case "password":
-        if (!user.id && (value?.length ?? 0) < 8) {
-          newErrors.password = "Password must be at least 8 characters";
-        } else if (value && value.length < 8) {
-          newErrors.password = "Password must be at least 8 characters";
-        } else {
-          delete newErrors.password;
-        }
-        break;
-      case "phone_number":
-        if (value && !/^\+?[\d\s-]{10,15}$/.test(value)) {
-          newErrors.phone_number = "Invalid phone number format";
-        } else {
-          delete newErrors.phone_number;
-        }
-        break;
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username,
+        email: user.email,
+        password: '',
+        role: user.role,
+      });
     }
+  }, [user]);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ 
-      ...prev, 
-      [name]: name === "phone_number" ? (value || null) : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
     }));
-    if (errors[name]) validateField(name, name === "phone_number" ? (value || null) : value);
   };
 
-  const handleBlur = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    validateField(name, name === "phone_number" ? (value || null) : value);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const isValid = Object.entries(form).every(([name, value]) => {
-      if (name === "id") return true;
-      if (name === "password" && user.id && !value) return true;
-      return validateField(name, value as string | null);
-    });
-
-    if (!isValid || Object.keys(errors).length > 0) {
-      setFormAlert({ type: "error", message: "Please fix the errors in the form" });
-      return;
-    }
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      setIsLoading(true);
-      const submitData = {
-        ...form,
-        password: form.password || (user.id ? undefined : ""),
-        phone_number: form.phone_number || undefined
-      };
-      await onSubmit(submitData);
+      if (user) {
+        await updateUser(user.id, formData);
+      } else {
+        await createUser(formData);
+      }
+      onSuccess();
     } catch (err) {
-      setFormAlert({
-        type: "error",
-        message: err instanceof Error ? err.message : "Failed to submit form",
-      });
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md space-y-4"
-        noValidate
-      >
-        <h2 className="text-xl font-semibold text-gray-800">
-          {user.id ? "Edit User" : "Add New User"}
-        </h2>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-4">
+        {user ? 'Edit User' : 'Add New User'}
+      </h2>
 
-        {formAlert && (
-          <Alert
-            type={formAlert.type}
-            message={formAlert.message}
-            onClose={() => setFormAlert(null)}
-          />
-        )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+          {error}
+        </div>
+      )}
 
-        <div className="grid gap-4">
-          {/* Username */}
-          <div className="flex flex-col">
-            <label htmlFor="username" className="text-sm font-medium text-gray-700 mb-1">
-              Username *
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="username">
+              Username
             </label>
             <input
               type="text"
+              id="username"
               name="username"
-              value={form.username || ""}
+              value={formData.username}
               onChange={handleChange}
-              onBlur={handleBlur}
+              className="w-full p-2 border rounded"
               required
-              className={`px-4 py-2 border rounded focus:outline-none focus:ring-2 ${
-                errors.username ? "border-red-500 focus:ring-red-500" : "focus:ring-emerald-500"
-              }`}
-              placeholder="e.g. john_doe"
             />
-            {errors.username && <p className="text-sm text-red-600 mt-1">{errors.username}</p>}
           </div>
 
-          {/* Email */}
-          <div className="flex flex-col">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700 mb-1">
-              Email *
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="email">
+              Email
             </label>
             <input
               type="email"
+              id="email"
               name="email"
-              value={form.email || ""}
+              value={formData.email}
               onChange={handleChange}
-              onBlur={handleBlur}
+              className="w-full p-2 border rounded"
               required
-              className={`px-4 py-2 border rounded focus:outline-none focus:ring-2 ${
-                errors.email ? "border-red-500 focus:ring-red-500" : "focus:ring-emerald-500"
-              }`}
-              placeholder="e.g. user@example.com"
             />
-            {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
           </div>
 
-          {/* Role */}
-          <div className="flex flex-col">
-            <label htmlFor="role" className="text-sm font-medium text-gray-700 mb-1">
-              Role *
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="password">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+              placeholder={user ? 'Leave blank to keep current password' : ''}
+              required={!user}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2" htmlFor="role">
+              Role
             </label>
             <select
+              id="role"
               name="role"
-              value={form.role || "member"}
+              value={formData.role}
               onChange={handleChange}
-              className="px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full p-2 border rounded"
             >
               <option value="member">Member</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-
-          {/* Phone Number */}
-          <div className="flex flex-col">
-            <label htmlFor="phone_number" className="text-sm font-medium text-gray-700 mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phone_number"
-              value={form.phone_number || ""}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className={`px-4 py-2 border rounded focus:outline-none focus:ring-2 ${
-                errors.phone_number ? "border-red-500 focus:ring-red-500" : "focus:ring-emerald-500"
-              }`}
-              placeholder="e.g. +1234567890"
-            />
-            {errors.phone_number && <p className="text-sm text-red-600 mt-1">{errors.phone_number}</p>}
-          </div>
-
-          {/* Password */}
-          <div className="flex flex-col">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700 mb-1">
-              {user.id ? "New Password" : "Password *"}
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={form.password || ""}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required={!user.id}
-              className={`px-4 py-2 border rounded focus:outline-none focus:ring-2 ${
-                errors.password ? "border-red-500 focus:ring-red-500" : "focus:ring-emerald-500"
-              }`}
-              placeholder={user.id ? "Leave blank to keep current" : "At least 8 characters"}
-            />
-            {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
-          </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-3 mt-4">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={isLoading}
-            className={`px-4 py-2 text-white rounded transition-colors ${
-              isLoading ? "bg-emerald-400" : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={isSubmitting}
           >
-            {isLoading ? "Submitting..." : user.id ? "Update User" : "Create User"}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </div>
       </form>

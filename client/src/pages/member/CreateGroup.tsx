@@ -1,70 +1,115 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import CreateGroupForm from "../../components/groups/CreateGroupForm";
-import GroupTable from "../../components/groups/GroupTable";
+import { useState, useEffect } from 'react';
+import GroupTable from '../../components/groups/GroupTable';
+import CreateGroupForm from '../../components/groups/CreateGroupForm';
+import { useAuth } from '../../context/AuthContext';
+import { useGroupApi } from '../../context/GroupApiContext';
+import { Group, CreateGroupPayload } from '../../types/group';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-type Group = {
-  id: number;
-  name: string;
-  description: string;
-  target_amount: number;
-  current_amount?: number;
-  admin_name?: string;
-};
+const CreateGroup = () => {
+  const { user } = useAuth();
+  const { getAllGroups, getUserGroups, createGroup, deleteGroup } = useGroupApi();
 
-const CreateGroupPage: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
-  // Fetch the user's groups from the backend
   const fetchGroups = async () => {
+    if (!user) return;
+
     try {
-      const response = await axios.get("/api/groups/my-groups");
-      setGroups(response.data);
-    } catch (error) {
-      console.error("Failed to fetch groups:", error);
+      setLoading(true);
+      const response =
+        user.role === 'admin' ? await getAllGroups() : await getUserGroups(user.id);
+      setGroups(response.data || []);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to fetch groups';
+      toast.error(errorMessage, { toastId: 'fetch-groups-error' });
+      console.error('Error fetching groups:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Delete a group by its ID
-  const handleDelete = async (groupId: number) => {
-    try {
-      await axios.delete(`/api/groups/${groupId}`);
-      await fetchGroups();
-    } catch (error) {
-      console.error("Failed to delete group:", error);
-    }
-  };
-
-  // Placeholder for editing a group
-  const handleEdit = (group: Group) => {
-    console.log("Edit group:", group);
-    // TODO: Open edit form/modal with group data
-  };
-
-  // Load groups on component mount
   useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [user]);
+
+  const handleCreateGroup = async (data: CreateGroupPayload) => {
+    if (!user) return;
+
+    try {
+      setIsCreating(true);
+      const response = await createGroup(data);
+      toast.success('Group created successfully!', { toastId: 'create-group-success' });
+      setIsFormOpen(false);
+      await fetchGroups();
+      return response;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to create group';
+      toast.error(errorMessage, { toastId: 'create-group-error' });
+      console.error('Error creating group:', err);
+      throw err;
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: number) => {
+    if (!window.confirm('Are you sure you want to delete this group?')) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteGroup(groupId);
+      toast.success('Group deleted successfully!', { toastId: 'delete-group-success' });
+      await fetchGroups();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to delete group';
+      toast.error(errorMessage, { toastId: 'delete-group-error' });
+      console.error('Error deleting group:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <div className="p-6 space-y-10">
-      {/* Create Group Section */}
-      <section>
-        <h2 className="text-2xl font-semibold text-emerald-700 mb-2">Create A New Group</h2>
-        <p className="text-gray-700 mb-4">
-          As a registered member, you can create your own Chama group, invite others to join,
-          and manage all aspects of your group's activities.
-        </p>
-        <CreateGroupForm onSuccess={fetchGroups} />
-      </section>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold text-emerald-700 mb-4">Manage Your Groups</h1>
 
-      {/* Group Table Section */}
-      <section>
-        <h2 className="text-2xl font-semibold text-emerald-700 mb-4">Your Groups</h2>
-        <GroupTable groups={groups} onDelete={handleDelete} onEdit={handleEdit} />
-      </section>
+      <button
+        onClick={() => setIsFormOpen(true)}
+        className="bg-emerald-700 text-white px-4 py-2 rounded mb-4 hover:bg-emerald-800 transition-colors disabled:opacity-50"
+        disabled={loading}
+      >
+        {loading ? 'Loading...' : 'Create New Group'}
+      </button>
+
+      <CreateGroupForm
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleCreateGroup}
+        isSubmitting={isCreating}
+      />
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+          <span className="ml-3 text-gray-600">Loading groups...</span>
+        </div>
+      ) : (
+        <GroupTable
+          groups={groups}
+          onDelete={handleDeleteGroup}
+          isAdmin={user?.role === 'admin'}
+          user={user}
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   );
 };
 
-export default CreateGroupPage;
+export default CreateGroup;

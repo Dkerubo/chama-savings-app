@@ -14,6 +14,7 @@ from .invitations import Invitation
 from .message_threads import MessageThread
 from .recurrence_rules import RecurrenceRule
 from .meetings import Meeting
+# from .join_request import JoinRequest   
 
 # Explicit listing for SQLAlchemy and linters
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     'MessageThread',
     'RecurrenceRule',
     'Meeting',
+    # 'JoinRequest',
 ]

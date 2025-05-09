@@ -17,6 +17,7 @@ from app.routes.messaging_routes import messaging_bp
 from app.routes.goals_routes import goals_bp
 from app.routes.recurrence_routes import recurrence_bp
 from app.routes.meetings_routes import meetings_bp
+# from app.routes.join_request import join_request_bp
 
 
 # Create a master blueprint (optional)

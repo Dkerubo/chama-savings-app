@@ -1,18 +1,29 @@
+// components/contributions/AdminContributions.tsx
 import React, { useEffect, useState } from 'react';
-import ContributionForm, { ContributionFormData } from './ContributionForm';
-import ContributionTable, { Contribution } from './ContributionTable';
+import ContributionForm from './ContributionForm';
+import ContributionTable from './ContributionTable';
 import axios from 'axios';
 
 const AdminContributions: React.FC = () => {
-  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [contributions, setContributions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchContributions = async () => {
-    const res = await axios.get('/api/contributions');
-    setContributions(res.data);
+    try {
+      const res = await axios.get('/api/contributions');
+      setContributions(res.data);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAdd = async (formData: ContributionFormData) => {
+  const handleAdd = async (formData: any) => {
     await axios.post('/api/contributions', formData);
+    fetchContributions();
+  };
+
+  const handleStatusChange = async (id: number, status: string) => {
+    await axios.patch(`/api/contributions/${id}/status`, { status });
     fetchContributions();
   };
 
@@ -20,11 +31,17 @@ const AdminContributions: React.FC = () => {
     fetchContributions();
   }, []);
 
+  if (loading) return <div>Loading...</div>;
+
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold text-emerald-700 mb-4">All Contributions</h2>
+    <div>
+      <h2 className="text-2xl font-semibold mb-4">Manage Contributions</h2>
       <ContributionForm onSubmit={handleAdd} />
-      <ContributionTable contributions={contributions} />
+      <ContributionTable 
+        contributions={contributions} 
+        onStatusChange={handleStatusChange}
+        isAdmin={true}
+      />
     </div>
   );
 };

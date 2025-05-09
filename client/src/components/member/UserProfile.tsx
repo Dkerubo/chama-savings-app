@@ -1,7 +1,49 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function UserProfile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    phone_number: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialize form data when user loads
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || "",
+        phone_number: user.phone_number || "",
+      });
+    }
+  }, [user]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    
+    try {
+      if (updateUser) {
+        await updateUser(formData);
+        setIsEditing(false);
+      } else {
+        throw new Error("Update functionality is not available");
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      setError(error instanceof Error ? error.message : "Failed to update profile");
+    }
+  };
 
   if (!user) {
     return (
@@ -13,42 +55,148 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h2 className="text-2xl font-bold text-emerald-700 mb-6">My Profile</h2>
-
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
-        <div>
-          <h3 className="text-sm text-gray-500">Full Name</h3>
-          <p className="text-lg text-gray-800">{user.username || "N/A"}</p>
-        </div>
-
-        <div>
-          <h3 className="text-sm text-gray-500">Email</h3>
-          <p className="text-lg text-gray-800">{user.email}</p>
-        </div>
-
-        <div>
-          <h3 className="text-sm text-gray-500">Phone</h3>
-          <p className="text-lg text-gray-800">{user.phone_number || "N/A"}</p>
-        </div>
-
-        <div>
-          <h3 className="text-sm text-gray-500">Role</h3>
-          <p className="text-lg text-gray-800 capitalize">{user.role}</p>
-        </div>
-
-        {user.group && (
-          <div>
-            <h3 className="text-sm text-gray-500">Group</h3>
-            <p className="text-lg text-gray-800">{user.group.name}</p>
-          </div>
-        )}
-
-        <div className="mt-6">
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow text-sm">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-emerald-700">My Profile</h2>
+        {!isEditing && (
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
             Edit Profile
           </button>
-        </div>
+        )}
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+          <p>{error}</p>
+        </div>
+      )}
+
+      {isEditing ? (
+        <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-xl p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                required
+                minLength={3}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                pattern="[0-9\s()+-]*"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={user.email}
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <input
+                type="text"
+                value={user.role}
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed capitalize"
+              />
+            </div>
+          </div>
+
+          {user.group && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
+              <input
+                type="text"
+                value={user.group.name}
+                disabled
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setFormData({
+                  username: user.username || "",
+                  phone_number: user.phone_number || "",
+                });
+                setError(null);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Save Changes
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Full Name</h3>
+                <p className="text-lg font-semibold text-gray-800">{user.username || "N/A"}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
+                <p className="text-lg font-semibold text-gray-800">{user.email}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Phone</h3>
+                <p className="text-lg font-semibold text-gray-800">{user.phone_number || "N/A"}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Role</h3>
+                <p className="text-lg font-semibold text-gray-800 capitalize">{user.role}</p>
+              </div>
+            </div>
+
+            {user.group && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Group</h3>
+                <p className="text-lg font-semibold text-gray-800">{user.group.name}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

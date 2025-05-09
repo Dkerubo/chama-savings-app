@@ -12,7 +12,7 @@ class Contribution(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id', ondelete='CASCADE'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     note = db.Column(db.String(255))
-    date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     status = db.Column(db.String(50), default='pending', nullable=False)  # 'pending', 'confirmed', 'rejected'
     receipt_number = db.Column(db.String(50), unique=True)
 
