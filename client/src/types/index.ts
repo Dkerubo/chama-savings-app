@@ -3,12 +3,18 @@ export interface User {
   username: string;
   email: string;
   password?: string;
-  phone_number?: string | null; // Make it optional and nullable
+  phone_number?: string | null;
   role?: 'admin' | 'member';
   created_at?: string;
   updated_at?: string;
   deleted_at?: string;
   profile_picture?: string;
+  group?: {
+    id: number;
+    name: string;
+    updated_at: string;
+  };
+  is_verified?: boolean;
 }
   
   export interface UserFormProps {
@@ -30,3 +36,4 @@ export interface User {
     itemsPerPage: number;
     totalItems: number;
   }
+  

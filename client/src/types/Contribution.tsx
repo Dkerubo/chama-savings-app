@@ -45,3 +45,12 @@ export interface Group {
     created_at: string;
     expires_at: string;
   }
+  // src/types/contribution.ts
+export interface ContributionFormData {
+  member_id: string;
+  group_id: string;
+  amount: string;
+  note?: string;
+  status?: string;
+  receipt_number?: string;
+}

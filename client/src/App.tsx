@@ -7,7 +7,6 @@ import { Toaster } from 'react-hot-toast';
 import { GroupApiProvider } from './context/GroupApiContext';
 import { NotificationProvider } from './context/NotificationContext';
 
-
 // Layout Components
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -27,21 +26,12 @@ import MemberLayout from "./layouts/MemberLayout";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminGroups from "./pages/admin/AdminGroups";
-import AdminLoans from "./pages/admin/AdminLoans";
-import AdminInvestments from "./pages/admin/AdminInvestments";
-import AdminMeetings from "./pages/admin/AdminMeetings";
-import AdminTransactions from "./pages/admin/AdminTransactions";
-import AdminContributions from "./pages/admin/AdminContributions";
+
 
 // Member Pages
 import MemberDashboard from "./pages/member/Dashboard";
-import MemberGroups from "./pages/member/Groups";
-import GroupDetails from "./pages/member/GroupDetails";
 import CreateGroup from "./pages/member/CreateGroup";
 import Contributions from "./pages/member/Contributions";
-import Transactions from "./pages/member/Transactions";
-import Loans from "./pages/member/Loans";
 import Profile from "./pages/member/Profile";
 //import Profile from "./pages/member/Profile";
 
@@ -78,12 +68,7 @@ function App() {
                 <Route index element={<AdminDashboard />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="users" element={<AdminUsers />} />
-                <Route path="groups" element={<AdminGroups />} />
-                <Route path="loans" element={<AdminLoans />} />
-                <Route path="investments" element={<AdminInvestments />} />
-                <Route path="meetings" element={<AdminMeetings />} />
-                <Route path="transactions" element={<AdminTransactions />} />
-                <Route path="contributions" element={<AdminContributions />} />
+              
                 {/* <Route path="/profile" element={<Profile />} /> */}
                 
               </Route>
@@ -99,13 +84,10 @@ function App() {
               >
                 <Route index element={<MemberDashboard />} />
                 <Route path="dashboard" element={<MemberDashboard />} />
-                <Route path="groups" element={<MemberGroups />} />
                 <Route path="profile" element={<Profile />} />
-                <Route path="groups/:id" element={<GroupDetails />} />
                 <Route path="create-group" element={<CreateGroup />} />
                 <Route path="contributions" element={<Contributions />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="loans" element={<Loans />} />
+              
                 {/* <Route path="/profile" element={<Profile />} /> */}
               </Route>
 

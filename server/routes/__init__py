@@ -1,0 +1,20 @@
+from flask import Blueprint
+from extensions import db
+
+
+# Import and register blueprints
+from .auth import auth_bp
+from .user import user_bp
+from .group import group_bp
+from .member_routes import member_bp
+from .contribution_routes import contribution_bp
+
+
+# Create a master blueprint (optional)
+def register_blueprints(app):
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(user_bp, url_prefix='/api/users')
+    app.register_blueprint(group_bp, url_prefix='/api/groups')
+    app.register_blueprint(member_bp, url_prefix='/api/members')
+    app.register_blueprint(contribution_bp, url_prefix='/api/contributions')
+   

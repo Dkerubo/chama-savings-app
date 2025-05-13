@@ -1,6 +1,26 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password?: string;
+  phone_number?: string | null;
+  role?: 'admin' | 'member';
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string;
+  profile_picture?: string;
+  group?: {
+    id: number;
+    name: string;
+    updated_at: string;
+  };
+  is_verified?: boolean;
+}
+
+
 export default function UserProfile() {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -10,7 +30,6 @@ export default function UserProfile() {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize form data when user loads
   useEffect(() => {
     if (user) {
       setFormData({
@@ -22,26 +41,21 @@ export default function UserProfile() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     try {
-      if (updateUser) {
-        await updateUser(formData);
-        setIsEditing(false);
-      } else {
-        throw new Error("Update functionality is not available");
-      }
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      setError(error instanceof Error ? error.message : "Failed to update profile");
+      await updateUser(formData);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to update profile"
+      );
     }
   };
 
@@ -58,11 +72,16 @@ export default function UserProfile() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-emerald-700">My Profile</h2>
         {!isEditing && (
-          <button 
+          <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-md transition-all"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
             </svg>
             Edit Profile
@@ -99,8 +118,9 @@ export default function UserProfile() {
                 name="phone_number"
                 value={formData.phone_number}
                 onChange={handleChange}
+                pattern="[0-9\\s()+\\-]*"
+                title="Only numbers, spaces, parentheses, plus, and dashes allowed"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                pattern="[0-9\s()+-]*"
               />
             </div>
 
@@ -110,7 +130,7 @@ export default function UserProfile() {
                 type="email"
                 value={user.email}
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 bg-gray-100 cursor-not-allowed rounded-lg"
               />
             </div>
 
@@ -120,19 +140,19 @@ export default function UserProfile() {
                 type="text"
                 value={user.role}
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed capitalize"
+                className="w-full px-4 py-2 border border-gray-300 bg-gray-100 cursor-not-allowed rounded-lg capitalize"
               />
             </div>
           </div>
 
-          {user.group && (
+          {user.group?.name && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
               <input
                 type="text"
                 value={user.group.name}
                 disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                className="w-full px-4 py-2 border border-gray-300 bg-gray-100 cursor-not-allowed rounded-lg"
               />
             </div>
           )}
@@ -148,16 +168,25 @@ export default function UserProfile() {
                 });
                 setError(null);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow transition flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
               </svg>
               Save Changes
             </button>
@@ -169,7 +198,9 @@ export default function UserProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Full Name</h3>
-                <p className="text-lg font-semibold text-gray-800">{user.username || "N/A"}</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {user.username || "N/A"}
+                </p>
               </div>
 
               <div>
@@ -179,19 +210,25 @@ export default function UserProfile() {
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Phone</h3>
-                <p className="text-lg font-semibold text-gray-800">{user.phone_number || "N/A"}</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {user.phone_number || "N/A"}
+                </p>
               </div>
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Role</h3>
-                <p className="text-lg font-semibold text-gray-800 capitalize">{user.role}</p>
+                <p className="text-lg font-semibold text-gray-800 capitalize">
+                  {user.role}
+                </p>
               </div>
             </div>
 
-            {user.group && (
+            {user.group?.name && (
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">Group</h3>
-                <p className="text-lg font-semibold text-gray-800">{user.group.name}</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {user.group.name}
+                </p>
               </div>
             )}
           </div>

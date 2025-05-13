@@ -1,38 +1,34 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  phone_number?: string;
-  group?: {
-    id: number;
-    name: string;
-    update_at: string;
-  };
-}
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+import { updateProfile } from '../api/userApi';
+import { User } from '../types'; 
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (token: string, userData: User) => void;
   logout: () => void;
-  updateUser: (userData: Partial<User>) => Promise<void>; // made required
+  updateUser: (userData: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
+  // Load user from localStorage when the app initializes
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error('Failed to parse user data:', error);
+        console.error('❌ Failed to parse user from localStorage:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
@@ -51,15 +47,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const updateUser = async (userData: Partial<User>) => {
-    if (!user) return;
-
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-
-    // Optional: Add API call to persist changes to backend
-    // await fetch('/api/user/update', { method: 'POST', body: JSON.stringify(updatedUser), ... })
+  const updateUser = async (userData: Partial<User>): Promise<void> => {
+    try {
+      const updatedUser = await updateProfile(userData);
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('❌ Failed to update user profile:', error);
+      throw error;
+    }
   };
 
   return (
@@ -77,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -85,6 +82,7 @@ export const useAuth = () => {
   return context;
 };
 
+// Optional helper hook just to access the user
 export const useUser = () => {
   const { user } = useAuth();
   return { user };
