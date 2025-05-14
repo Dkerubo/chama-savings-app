@@ -18,6 +18,8 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     phone_number = db.Column(db.String(20))
     profile_picture = db.Column(db.String(255))
+   
+
     
     # New verification & reset fields
     is_verified = db.Column(db.Boolean, default=False)
@@ -30,7 +32,7 @@ class User(db.Model):
     admin_groups = db.relationship('Group', back_populates='admin', cascade='all, delete-orphan')
     # verified_loans = db.relationship('Loan', foreign_keys='Loan.approved_by', back_populates='approver')
     members = db.relationship('Member', back_populates='user', cascade='all, delete-orphan')
-
+    
     def __init__(self, username=None, email=None, password=None, **kwargs):
         if username:
             self.set_username(username)

@@ -19,7 +19,7 @@ class Contribution(db.Model):
     # Relationships
     member = db.relationship('Member', back_populates='contributions')
     group = db.relationship('Group', back_populates='contributions')
-
+   
     @validates('status')
     def validate_status(self, key, status):
         valid_statuses = ['pending', 'confirmed', 'rejected']
@@ -46,6 +46,8 @@ class Contribution(db.Model):
             'status': self.status,
             'receipt_number': self.receipt_number,
             'member_name': self.member.user.username if self.member and self.member.user else None
+            
+            
         }
 
     def confirm(self):

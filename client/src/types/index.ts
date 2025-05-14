@@ -15,6 +15,7 @@ export interface User {
     updated_at: string;
   };
   is_verified?: boolean;
+
 }
   
   export interface UserFormProps {

@@ -6,29 +6,34 @@ import React, {
   ReactNode,
 } from 'react';
 import { updateProfile } from '../api/userApi';
-import { User } from '../types'; 
+import { User } from '../types';
+
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
+  token: string | null;
   login: (token: string, userData: User) => void;
   logout: () => void;
   updateUser: (userData: Partial<User>) => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
-  // Load user from localStorage when the app initializes
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
+        setToken(storedToken);
       } catch (error) {
-        console.error('❌ Failed to parse user from localStorage:', error);
+        console.error('❌ Failed to parse user/token from localStorage:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
@@ -39,12 +44,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    setToken(token);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setToken(null);
   };
 
   const updateUser = async (userData: Partial<User>): Promise<void> => {
@@ -60,20 +67,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        updateUser,
-      }}
+      value={{ user, token, login, logout, updateUser, isAuthenticated: !!user }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -82,7 +82,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Optional helper hook just to access the user
 export const useUser = () => {
   const { user } = useAuth();
   return { user };

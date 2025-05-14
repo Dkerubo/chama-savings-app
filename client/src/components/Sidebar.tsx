@@ -21,7 +21,7 @@ const Sidebar = ({ role }: Props) => {
     { label: "Dashboard", path: "/member/dashboard" },
     { label: "My Profile", path: "/member/Profile" },
     { label: "Create Group", path: "/member/create-group" },
-    { label: "My Groups", path: "/member/groups" },
+    // { label: "My Groups", path: "/member/groups" },
     { label: "Contributions", path: "/member/contributions" },
       // { label: "Invitations", path: "/member/invitations" },
     // { label: "My Contributions", path: "/contributions" },

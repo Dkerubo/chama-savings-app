@@ -16,11 +16,15 @@ class Member(db.Model):
     contribution_score = db.Column(db.Integer, default=0)
     phone = db.Column(db.String(20))
     address = db.Column(db.String(255))
+  
 
     # Relationships
     user = db.relationship('User', back_populates='members')
     group = db.relationship('Group', back_populates='members')
     contributions = db.relationship('Contribution', back_populates='member', cascade='all, delete-orphan')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+  
+   
 
     __table_args__ = (
         db.UniqueConstraint('user_id', 'group_id', name='unique_member'),

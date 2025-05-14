@@ -20,6 +20,13 @@ def get_member(id):
         return jsonify(member.serialize()), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    # Backend Endpoint: add a route to fetch member info for the current user
+@member_bp.route('/user/<int:user_id>', methods=['GET'])
+def get_member_by_user(user_id):
+    member = Member.query.filter_by(user_id=user_id).first()
+    if not member:
+        return jsonify({'error': 'Member not found'}), 404
+    return jsonify({'member_id': member.id})
 
 @member_bp.route('/', methods=['POST'])
 def create_member():

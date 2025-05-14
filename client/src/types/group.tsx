@@ -16,6 +16,9 @@ export interface Group {
   logo_url?: string;
   member_count: number;
   members?: Member[];
+  username: string;
+  email: string;
+  role: 'admin' | 'member';
 }
 
 export interface CreateGroupPayload extends Omit<Group, 'id' | 'members' | 'created_at'> {}

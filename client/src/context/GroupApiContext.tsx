@@ -5,6 +5,8 @@ import { CreateGroupPayload } from '../types/group';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+
+
 interface GroupApiContextType {
   getAllGroups: () => Promise<any>;
   getUserGroups: (userId: string) => Promise<any>;
