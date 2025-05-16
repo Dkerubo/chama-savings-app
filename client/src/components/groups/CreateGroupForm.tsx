@@ -1,19 +1,20 @@
-// src/components/groups/CreateGroupForm.tsx
-
 import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { User } from '../../types/index';
+import { User } from '../../types';
+import toast from 'react-hot-toast';
+
 
 interface Props {
   onSuccess: () => void;
   onClose: () => void;
 }
 
-const CreateGroupForm = ({ onSuccess, onClose }: Props) => {
-  const auth = useAuth();
-  const user = auth.user as User | null;
-  const token = localStorage.getItem('token');
+const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
+  const { user, token } = useAuth() as {
+    user: User | null;
+    token: string | null;
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -29,52 +30,64 @@ const CreateGroupForm = ({ onSuccess, onClose }: Props) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const newValue =
-      type === 'checkbox' && 'checked' in e.target
-        ? (e.target as HTMLInputElement).checked
-        : value;
-
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData((prev) => ({
       ...prev,
-      [name]: newValue,
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user || !token) return alert('You must be logged in to create a group.');
+
+    if (!user || !token) {
+      toast.error('You must be logged in to create a group.');
+      return;
+    }
+
+    const amount = parseFloat(formData.target_amount.trim());
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid, positive target amount.');
+      return;
+    }
+
+    const payload = {
+      name: formData.name.trim(),
+      description: formData.description.trim() || null,
+      target_amount: amount,
+      meeting_schedule: formData.meeting_schedule.trim() || null,
+      location: formData.location.trim() || null,
+      logo_url: formData.logo_url.trim() || null,
+      is_public: formData.is_public,
+    };
 
     try {
-      const payload = {
-        ...formData,
-        target_amount: parseFloat(formData.target_amount),
-        admin_id: user.id,
-      };
+      await axios.post('http://localhost:5000/api/groups/', payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
 
-      await axios.post(
-        'http://localhost:5000/api/groups/',
-        payload,
-        {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
+      toast.success('Group created successfully!');
       onSuccess();
       onClose();
-    } catch (err) {
-      console.error('Create group failed:', err);
-      alert('Failed to create group. Please try again.');
+    } catch (err: any) {
+      console.error('Create group failed:', err.response?.data || err.message);
+      toast.error(
+        err.response?.data?.error ||
+          'Failed to create group. Please check your inputs and try again.'
+      );
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold text-emerald-700 mb-4">Create Group</h2>
+        <h2 className="text-xl font-semibold text-emerald-700 mb-4">
+          Create Group
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -131,6 +144,7 @@ const CreateGroupForm = ({ onSuccess, onClose }: Props) => {
               name="is_public"
               checked={formData.is_public}
               onChange={handleChange}
+              className="accent-emerald-700"
             />
             Public Group
           </label>

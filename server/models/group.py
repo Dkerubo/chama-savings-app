@@ -1,5 +1,5 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from sqlalchemy import event, func
 from sqlalchemy.orm import validates
 from extensions import db
@@ -24,27 +24,29 @@ class Group(db.Model):
     admin = db.relationship('User', back_populates='admin_groups')
     members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
     contributions = db.relationship("Contribution", back_populates="group", cascade="all, delete-orphan")
-    # loans = db.relationship("Loan", back_populates="group", cascade="all, delete-orphan")
-    # investments = db.relationship("Investment", back_populates="group", cascade="all, delete-orphan")
-    
+
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
         self.admin_id = admin_id
-        self.target_amount = target_amount
+        self.target_amount = Decimal(str(target_amount))  # safe conversion
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @validates('name')
     def validate_name(self, key, name):
-        if len(name) < 3:
+        if not name or len(name.strip()) < 3:
             raise ValueError('Group name must be at least 3 characters')
-        return name
+        return name.strip()
 
     @validates('target_amount')
     def validate_target_amount(self, key, amount):
-        if amount <= 0:
-            raise ValueError('Target amount must be positive')
-        return amount
+        try:
+            decimal_amount = Decimal(str(amount))
+            if decimal_amount <= 0:
+                raise ValueError('Target amount must be positive')
+            return decimal_amount
+        except (InvalidOperation, ValueError):
+            raise ValueError('Invalid target amount')
 
     def serialize(self, include_members=False):
         data = {
@@ -81,7 +83,7 @@ class Group(db.Model):
 
 @event.listens_for(Group, 'after_insert')
 def after_group_insert(mapper, connection, target):
-    print(f"New group created: {target.name} (ID: {target.id})")
+    print(f"✅ New group created: {target.name} (ID: {target.id})")
 
 @event.listens_for(Group, 'before_update')
 def before_group_update(mapper, connection, target):

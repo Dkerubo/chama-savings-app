@@ -35,7 +35,7 @@ const ContributionTable = () => {
     receipt_number: '',
     group_id: '',
   });
-  const [memberId, setMemberId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
@@ -50,18 +50,6 @@ const ContributionTable = () => {
       console.error('Failed to fetch contributions:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMemberId = async () => {
-    if (!user) return;
-    try {
-      const res = await axios.get(`http://localhost:5000/api/members/user/${user.id}`, {
-        withCredentials: true,
-      });
-      setMemberId(res.data.member_id);
-    } catch (err) {
-      console.error('Failed to fetch member ID:', err);
     }
   };
 
@@ -84,9 +72,7 @@ const ContributionTable = () => {
       await axios.put(
         `http://localhost:5000/api/contributions/${id}`,
         { status },
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       toast.success(`Marked as ${status}`);
       fetchContributions();
@@ -98,20 +84,33 @@ const ContributionTable = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !memberId) return;
+    if (!user) return;
     try {
-      await axios.post(
-        'http://localhost:5000/api/contributions/',
-        {
-          ...formData,
-          member_id: memberId,
-          amount: parseFloat(formData.amount),
-        },
-        { withCredentials: true }
-      );
-      toast.success('Contribution submitted');
+      if (editId !== null) {
+        await axios.put(
+          `http://localhost:5000/api/contributions/${editId}`,
+          {
+            ...formData,
+            amount: parseFloat(formData.amount),
+          },
+          { withCredentials: true }
+        );
+        toast.success('Contribution updated');
+      } else {
+        await axios.post(
+          'http://localhost:5000/api/contributions/',
+          {
+            ...formData,
+            member_id: user.id,
+            amount: parseFloat(formData.amount),
+          },
+          { withCredentials: true }
+        );
+        toast.success('Contribution submitted');
+      }
       setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
       setShowForm(false);
+      setEditId(null);
       fetchContributions();
     } catch (err) {
       toast.error('Submission failed');
@@ -119,9 +118,20 @@ const ContributionTable = () => {
     }
   };
 
+  const handleEdit = (c: Contribution) => {
+    setEditId(c.id);
+    setFormData({
+      amount: String(c.amount),
+      note: c.note || '',
+      receipt_number: c.receipt_number || '',
+      group_id: String(c.group_id),
+    });
+    setShowForm(true);
+  };
+
   const filtered = contributions.filter(
     (c) =>
-      (user?.role === 'admin' || c.member_id === memberId) &&
+      (user?.role === 'admin' || c.member_id === user?.id) &&
       (c.member_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -130,7 +140,6 @@ const ContributionTable = () => {
 
   useEffect(() => {
     fetchContributions();
-    fetchMemberId();
   }, []);
 
   const badgeColor = {
@@ -154,7 +163,10 @@ const ContributionTable = () => {
           {user?.id && (
             <button
               className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                setEditId(null);
+                setShowForm(!showForm);
+              }}
             >
               <FiPlus /> Contribute
             </button>
@@ -204,7 +216,7 @@ const ContributionTable = () => {
               type="submit"
               className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800"
             >
-              Submit
+              {editId ? 'Update' : 'Submit'}
             </button>
           </div>
         </form>
@@ -239,6 +251,14 @@ const ContributionTable = () => {
                 </td>
                 <td className="py-2 px-4">{new Date(c.created_at).toLocaleDateString()}</td>
                 <td className="py-2 px-4 space-x-2">
+                  {(user?.role === 'admin' || c.member_id === user?.id) && (
+                    <button
+                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => handleEdit(c)}
+                    >
+                      <FiEdit2 />
+                    </button>
+                  )}
                   {user?.role === 'admin' && (
                     <>
                       <button
@@ -255,7 +275,7 @@ const ContributionTable = () => {
                       </button>
                     </>
                   )}
-                  {(user?.role === 'admin' || c.member_id === memberId) && (
+                  {(user?.role === 'admin' || c.member_id === user?.id) && (
                     <button
                       className="text-red-600 hover:text-red-800"
                       onClick={() => handleDelete(c.id)}
