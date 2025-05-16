@@ -16,7 +16,8 @@ psycopg2-binary = "^2.9.9"  # For PostgreSQL support
 whitenoise = "^6.5.0"       # For static files
 
 [tool.poetry.dev-dependencies]
-pytest = "^7.4.0"
+pytest = "^7.4.3"  # Updated to a specific working version
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
