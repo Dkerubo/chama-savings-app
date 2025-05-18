@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { User } from '../../types';
 import toast from 'react-hot-toast';
 
-
 interface Props {
   onSuccess: () => void;
   onClose: () => void;
@@ -31,6 +30,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -45,9 +45,11 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
       return;
     }
 
-    const amount = parseFloat(formData.target_amount.trim());
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Please enter a valid, positive target amount.');
+    const trimmedAmount = formData.target_amount.trim();
+    const amount = parseFloat(trimmedAmount);
+
+    if (!trimmedAmount || isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid target amount.');
       return;
     }
 
@@ -73,11 +75,11 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
       toast.success('Group created successfully!');
       onSuccess();
       onClose();
-    } catch (err: any) {
-      console.error('Create group failed:', err.response?.data || err.message);
+    } catch (error: any) {
+      console.error('Create group failed:', error.response?.data || error.message);
       toast.error(
-        err.response?.data?.error ||
-          'Failed to create group. Please check your inputs and try again.'
+        error.response?.data?.error ||
+          'Failed to create group. Please check your input and try again.'
       );
     }
   };

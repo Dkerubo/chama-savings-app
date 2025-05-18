@@ -1,2 +1,2 @@
 # settings.py
-WSGI_APPLICATION = 'chama_savings_app.wsgi.application'
+WSGI_APPLICATION = 'chama-savings-app.wsgi.application'

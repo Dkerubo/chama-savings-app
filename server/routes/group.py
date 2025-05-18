@@ -6,6 +6,10 @@ from decimal import Decimal
 
 group_bp = Blueprint('group', __name__, url_prefix='/api/groups')
 
+
+# ─────────────────────────────
+# GET all groups
+# ─────────────────────────────
 @group_bp.route('/', methods=['GET'])
 def get_all_groups():
     try:
@@ -13,8 +17,12 @@ def get_all_groups():
         return jsonify([group.serialize() for group in groups]), 200
     except Exception as e:
         print("❌ Error fetching groups:", repr(e))
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to retrieve groups'}), 500
 
+
+# ─────────────────────────────
+# GET a single group by ID
+# ─────────────────────────────
 @group_bp.route('/<int:id>', methods=['GET'])
 def get_group(id):
     try:
@@ -22,8 +30,12 @@ def get_group(id):
         return jsonify(group.serialize()), 200
     except Exception as e:
         print("❌ Error fetching group:", repr(e))
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Group not found'}), 404
 
+
+# ─────────────────────────────
+# POST - Create a new group
+# ─────────────────────────────
 @group_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_group():
@@ -31,24 +43,20 @@ def create_group():
     data = request.get_json()
     print("📦 Incoming group creation data:", data)
 
+    if not data.get('name') or not data.get('target_amount'):
+        return jsonify({'error': 'Name and target amount are required.'}), 400
+
     try:
-        if not data.get('name') or not data.get('target_amount'):
-            return jsonify({'error': 'Missing name or target_amount'}), 400
-
-        # Safely convert target_amount to Decimal
-        target_amount = Decimal(str(data['target_amount']))
-
         group = Group(
-            name=data['name'],
-            target_amount=target_amount,
-            admin_id=current_user_id,
-            description=data.get('description'),
-            meeting_schedule=data.get('meeting_schedule'),
-            location=data.get('location'),
+            name=data['name'].strip(),
+            description=data.get('description') or None,
+            target_amount=Decimal(str(data['target_amount'])),
+            meeting_schedule=data.get('meeting_schedule') or None,
+            location=data.get('location') or None,
             is_public=data.get('is_public', False),
-            logo_url=data.get('logo_url'),
+            logo_url=data.get('logo_url') or None,
+            admin_id=current_user_id,
         )
-
         db.session.add(group)
         db.session.commit()
         return jsonify(group.serialize()), 201
@@ -56,16 +64,25 @@ def create_group():
     except Exception as e:
         db.session.rollback()
         print("❌ Error creating group:", repr(e))
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': 'Failed to create group'}), 500
 
+
+# ─────────────────────────────
+# PUT - Update an existing group
+# ─────────────────────────────
 @group_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_group(id):
+    current_user_id = get_jwt_identity()
     data = request.get_json()
     print(f"🔄 Update request for group {id}: {data}")
 
     try:
         group = Group.query.get_or_404(id)
+
+        # Optional: Only allow admins of the group to update
+        # if group.admin_id != current_user_id:
+        #     return jsonify({'error': 'Unauthorized to update this group'}), 403
 
         group.name = data.get('name', group.name)
         group.description = data.get('description', group.description)
@@ -87,17 +104,29 @@ def update_group(id):
     except Exception as e:
         db.session.rollback()
         print("❌ Error updating group:", repr(e))
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': 'Failed to update group'}), 500
 
+
+# ─────────────────────────────
+# DELETE - Remove a group
+# ─────────────────────────────
 @group_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_group(id):
+    current_user_id = get_jwt_identity()
+
     try:
         group = Group.query.get_or_404(id)
+
+        # Optional: Only allow admins of the group to delete
+        # if group.admin_id != current_user_id:
+        #     return jsonify({'error': 'Unauthorized to delete this group'}), 403
+
         db.session.delete(group)
         db.session.commit()
         return jsonify({'message': 'Group deleted successfully'}), 200
+
     except Exception as e:
         db.session.rollback()
         print("❌ Error deleting group:", repr(e))
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to delete group'}), 500
