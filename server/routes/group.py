@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from server.extensions import db
-from models.group import Group
+from server.models.group import Group
 from decimal import Decimal
 
 group_bp = Blueprint('group', __name__, url_prefix='/api/groups')

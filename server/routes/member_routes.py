@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from server.extensions import db
-from models.member import Member
+from server.models.member import Member
 from sqlalchemy import or_
 
 member_bp = Blueprint('member', __name__)

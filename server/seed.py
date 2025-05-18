@@ -1,10 +1,10 @@
 # seed.py
 from app import create_app
 from server.extensions import db
-from models.user import User
-from models.group import Group
-from models.member import Member
-from models.contribution import Contribution
+from server.models.user import User
+from server.models.group import Group
+from server.models.member import Member
+from server.models.contribution import Contribution
 from faker import Faker
 import random as rc
 from datetime import timedelta

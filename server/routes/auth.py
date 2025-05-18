@@ -7,7 +7,7 @@ from flask_jwt_extended import (
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from functools import wraps
-from models.user import User
+from server.models.user import User
 from server.extensions import db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')

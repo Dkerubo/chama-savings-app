@@ -5,10 +5,10 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from server.extensions import db, migrate, api, jwt
 from server.routes.auth import auth_bp
-from routes.user import user_bp
-from routes.group import group_bp
-from routes.member_routes import member_bp
-from routes.contribution_routes import contribution_bp
+from server.routes.user import user_bp
+from server.routes.group import group_bp
+from server.routes.member_routes import member_bp
+from server.routes.contribution_routes import contribution_bp
 
 # Load environment variables
 load_dotenv()
