@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from extensions import db
+from server.extensions import db
 from models.member import Member
 from sqlalchemy import or_
 

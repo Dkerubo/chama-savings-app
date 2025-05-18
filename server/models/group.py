@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from sqlalchemy import event, func
 from sqlalchemy.orm import validates
-from extensions import db
+from server.extensions import db
 
 class Group(db.Model):
     __tablename__ = 'groups'

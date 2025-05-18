@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from functools import wraps
 from models.user import User
-from extensions import db
+from server.extensions import db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 

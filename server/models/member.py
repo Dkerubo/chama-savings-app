@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import event
 from sqlalchemy.orm import validates
-from extensions import db
+from server.extensions import db
 
 class Member(db.Model):
     __tablename__ = 'members'

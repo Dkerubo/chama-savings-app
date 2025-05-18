@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
-from extensions import db, migrate, api, jwt
+from server.extensions import db, migrate, api, jwt
 from routes.auth import auth_bp
 from routes.user import user_bp
 from routes.group import group_bp

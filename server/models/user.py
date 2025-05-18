@@ -1,5 +1,5 @@
 from datetime import datetime
-from extensions import db
+from server.extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token
 import re

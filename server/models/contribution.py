@@ -1,5 +1,5 @@
 from datetime import datetime
-from extensions import db
+from server.extensions import db
 from sqlalchemy import event
 from sqlalchemy.orm import validates
 from sqlalchemy.orm.session import object_session

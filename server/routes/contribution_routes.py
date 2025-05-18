@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from extensions import db
+from server.extensions import db
 from models.contribution import Contribution
 
 contribution_bp = Blueprint('contribution', __name__)

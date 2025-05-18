@@ -1,6 +1,6 @@
 # seed.py
 from app import create_app
-from extensions import db
+from server.extensions import db
 from models.user import User
 from models.group import Group
 from models.member import Member
