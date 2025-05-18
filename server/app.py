@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from server.extensions import db, migrate, api, jwt
-from routes.auth import auth_bp
+from server.routes.auth import auth_bp
 from routes.user import user_bp
 from routes.group import group_bp
 from routes.member_routes import member_bp
@@ -14,7 +14,7 @@ from routes.contribution_routes import contribution_bp
 load_dotenv()
 
 # Initialize extensions
-jwt = JWTManager()  # ✅ Make sure this is initialized globally
+jwt = JWTManager()  
 # db and migrate are already initialized in extensions.py
 
 def create_app():
