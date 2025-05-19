@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import CreateGroupForm from './CreateGroupForm';
 import EditGroupForm from './EditGroupForm';
 import InviteMemberForm from './InviteMemberForm';
- import { User } from '../../types/index'; 
+import { User } from '../../types/index';
 
 interface Group {
   id: number;
@@ -27,16 +27,14 @@ interface Group {
   progress: number;
   member_count: number;
 }
+
 const API_BASE_URL = 'http://localhost:5000/api/groups';
 
 const GroupTable = () => {
-
-  const auth = useAuth();
-  const user = auth.user as User | null;
+  const { user } = useAuth() as { user: User | null };
   const [groups, setGroups] = useState<Group[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTab, setSelectedTab] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editGroup, setEditGroup] = useState<Group | null>(null);
   const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
@@ -45,23 +43,21 @@ const GroupTable = () => {
 
   const fetchGroups = useCallback(async () => {
     try {
-      const res = await axios.get(API_BASE_URL, {
-        withCredentials: true,
-      });
+      const res = await axios.get(API_BASE_URL, { withCredentials: true });
       setGroups(res.data);
     } catch (err) {
       console.error('Failed to fetch groups:', err);
-    } finally {
-      setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this group?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/${id}`, {
-        withCredentials: true,
-      });
+      await axios.delete(`${API_BASE_URL}/${id}`, { withCredentials: true });
       setGroups(prev => prev.filter(g => g.id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -102,35 +98,21 @@ const GroupTable = () => {
     document.body.removeChild(link);
   };
 
- const filteredGroups = groups
-  .filter(group => {
-    if (!user) return false;
-    if (selectedTab === 0 && user.role !== 'admin') {
-      return group.admin_id === user.id; 
-    }
-    return true;
-  })
-    .filter(group => 
-      group.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const filteredGroups = groups
+    .filter(group => {
+      if (!user) return false;
+      if (selectedTab === 0 && user.role !== 'admin') {
+        return group.admin_id === user.id;
+      }
+      return true;
+    })
+    .filter(group => group.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const totalPages = Math.ceil(filteredGroups.length / pageSize);
   const paginatedGroups = filteredGroups.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-center text-emerald-700">Loading groups...</p>
-      </div>
-    );
-  }
 
   const renderStatusBadge = (status: Group['status']) => {
     const statusClasses = {
@@ -147,12 +129,10 @@ const GroupTable = () => {
   };
 
   const renderActionButtons = (group: Group) => {
-    if (!user || !(user.role === 'admin' || user.id === group.admin_id)) {
-      return null;
-    }
+    if (!user || (user.role !== 'admin' && user.id !== group.admin_id)) return null;
 
     return (
-      <>
+      <div className="flex gap-2">
         <button
           className="text-emerald-700 hover:text-emerald-900"
           onClick={() => setEditGroup(group)}
@@ -174,7 +154,7 @@ const GroupTable = () => {
         >
           Invite
         </button>
-      </>
+      </div>
     );
   };
 
@@ -193,14 +173,14 @@ const GroupTable = () => {
           <div className="flex gap-2">
             <button
               onClick={handleExportCSV}
-              className="border border-emerald-700 text-emerald-700 px-4 py-2 rounded hover:bg-emerald-50 whitespace-nowrap"
+              className="border border-emerald-700 text-emerald-700 px-4 py-2 rounded hover:bg-emerald-50"
             >
               Export CSV
             </button>
             {(user?.role === 'admin' || user?.id) && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 whitespace-nowrap"
+                className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800"
               >
                 + Create Group
               </button>
@@ -212,30 +192,21 @@ const GroupTable = () => {
       {user?.role !== 'admin' && (
         <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
           <Tab.List className="flex gap-4 mb-6">
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'px-4 py-2 rounded-full border text-sm',
-                  selected
-                    ? 'bg-emerald-700 text-white'
-                    : 'border-emerald-700 text-emerald-700 hover:bg-emerald-100'
-                )
-              }
-            >
-              Your Groups
-            </Tab>
-            <Tab
-              className={({ selected }) =>
-                classNames(
-                  'px-4 py-2 rounded-full border text-sm',
-                  selected
-                    ? 'bg-emerald-700 text-white'
-                    : 'border-emerald-700 text-emerald-700 hover:bg-emerald-100'
-                )
-              }
-            >
-              All Groups
-            </Tab>
+            {['Your Groups', 'All Groups'].map((label, index) => (
+              <Tab
+                key={index}
+                className={({ selected }) =>
+                  classNames(
+                    'px-4 py-2 rounded-full border text-sm',
+                    selected
+                      ? 'bg-emerald-700 text-white'
+                      : 'border-emerald-700 text-emerald-700 hover:bg-emerald-100'
+                  )
+                }
+              >
+                {label}
+              </Tab>
+            ))}
           </Tab.List>
         </Tab.Group>
       )}
@@ -272,12 +243,12 @@ const GroupTable = () => {
                         }}
                       />
                     )}
-                    <span>{group.name}</span>
+                    {group.name}
                   </td>
                   <td className="py-3 px-4">{group.admin_name}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center">
-                      <FaMoneyBillWave className="text-emerald-700 mr-2" />
+                      <FaMoneyBillWave className="text-emerald-700 mr-1" />
                       {group.target_amount.toLocaleString()}
                     </div>
                   </td>
@@ -296,27 +267,25 @@ const GroupTable = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center">
-                      <FiUsers className="text-emerald-700 mr-2" />
+                      <FiUsers className="text-emerald-700 mr-1" />
                       {group.member_count}
                     </div>
                   </td>
                   <td className="py-3 px-4">{group.meeting_schedule || 'N/A'}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center">
-                      <FiMapPin className="text-emerald-700 mr-2" />
+                      <FiMapPin className="text-emerald-700 mr-1" />
                       {group.location || 'N/A'}
                     </div>
                   </td>
                   <td className="py-3 px-4">{renderStatusBadge(group.status)}</td>
-                  <td className="py-3 px-4 space-x-2">
-                    {renderActionButtons(group)}
-                  </td>
+                  <td className="py-3 px-4">{renderActionButtons(group)}</td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan={10} className="py-8 text-center text-gray-500">
-                  No groups found
+                  No groups found.
                 </td>
               </tr>
             )}
@@ -327,34 +296,27 @@ const GroupTable = () => {
       {totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-2">
           <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50"
           >
             Previous
           </button>
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            const page = currentPage <= 3
-              ? i + 1
-              : currentPage >= totalPages - 2
-                ? totalPages - 4 + i
-                : currentPage - 2 + i;
-            return (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 border rounded ${
-                  currentPage === page
-                    ? 'bg-emerald-700 text-white'
-                    : 'border-emerald-700 text-emerald-700'
-                }`}
-              >
-                {page}
-              </button>
-            );
-          })}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-1 border rounded ${
+                currentPage === page
+                  ? 'bg-emerald-700 text-white'
+                  : 'border-emerald-700 text-emerald-700'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
           <button
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50"
           >
@@ -365,10 +327,7 @@ const GroupTable = () => {
 
       {showCreateModal && (
         <CreateGroupForm
-          onSuccess={() => {
-            fetchGroups();
-            setShowCreateModal(false);
-          }}
+          onSuccess={fetchGroups}
           onClose={() => setShowCreateModal(false)}
         />
       )}
@@ -376,10 +335,7 @@ const GroupTable = () => {
       {editGroup && (
         <EditGroupForm
           group={editGroup}
-          onSuccess={() => {
-            fetchGroups();
-            setEditGroup(null);
-          }}
+          onSuccess={fetchGroups}
           onClose={() => setEditGroup(null)}
         />
       )}
@@ -387,10 +343,7 @@ const GroupTable = () => {
       {inviteGroupId && (
         <InviteMemberForm
           groupId={inviteGroupId}
-          onSuccess={() => {
-            fetchGroups();
-            setInviteGroupId(null);
-          }}
+          onSuccess={fetchGroups}
           onClose={() => setInviteGroupId(null)}
         />
       )}

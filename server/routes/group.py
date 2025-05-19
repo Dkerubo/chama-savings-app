@@ -41,7 +41,6 @@ def get_group(id):
 def create_group():
     current_user_id = get_jwt_identity()
     data = request.get_json()
-    print("📦 Incoming group creation data:", data)
 
     if not data.get('name') or not data.get('target_amount'):
         return jsonify({'error': 'Name and target amount are required.'}), 400
@@ -49,13 +48,13 @@ def create_group():
     try:
         group = Group(
             name=data['name'].strip(),
-            description=data.get('description') or None,
+            description=data.get('description'),
             target_amount=Decimal(str(data['target_amount'])),
-            meeting_schedule=data.get('meeting_schedule') or None,
-            location=data.get('location') or None,
+            meeting_schedule=data.get('meeting_schedule'),
+            location=data.get('location'),
             is_public=data.get('is_public', False),
-            logo_url=data.get('logo_url') or None,
-            admin_id=current_user_id,
+            logo_url=data.get('logo_url'),
+            admin_id=current_user_id
         )
         db.session.add(group)
         db.session.commit()
@@ -75,14 +74,12 @@ def create_group():
 def update_group(id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
-    print(f"🔄 Update request for group {id}: {data}")
 
     try:
         group = Group.query.get_or_404(id)
 
-        # Optional: Only allow admins of the group to update
-        # if group.admin_id != current_user_id:
-        #     return jsonify({'error': 'Unauthorized to update this group'}), 403
+        if group.admin_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
 
         group.name = data.get('name', group.name)
         group.description = data.get('description', group.description)
@@ -118,9 +115,8 @@ def delete_group(id):
     try:
         group = Group.query.get_or_404(id)
 
-        # Optional: Only allow admins of the group to delete
-        # if group.admin_id != current_user_id:
-        #     return jsonify({'error': 'Unauthorized to delete this group'}), 403
+        if group.admin_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
 
         db.session.delete(group)
         db.session.commit()

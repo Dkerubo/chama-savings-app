@@ -7,6 +7,7 @@ interface FormState {
   username: string;
   email: string;
   password: string;
+  confirm_password: string;
   phone_number: string;
 }
 
@@ -15,6 +16,7 @@ const Register: React.FC = () => {
     username: '',
     email: '',
     password: '',
+    confirm_password: '',
     phone_number: ''
   });
 
@@ -45,6 +47,19 @@ const Register: React.FC = () => {
           newErrors.password = 'Must be at least 8 characters';
         } else {
           delete newErrors.password;
+        }
+
+        if (form.confirm_password && form.confirm_password !== value) {
+          newErrors.confirm_password = 'Passwords do not match';
+        } else {
+          delete newErrors.confirm_password;
+        }
+        break;
+      case 'confirm_password':
+        if (value !== form.password) {
+          newErrors.confirm_password = 'Passwords do not match';
+        } else {
+          delete newErrors.confirm_password;
         }
         break;
       case 'phone_number':
@@ -89,7 +104,8 @@ const Register: React.FC = () => {
     const toastId = toast.loading('Registering your account...');
 
     try {
-      const response = await api.post('/auth/register', form);
+      const { confirm_password, ...formData } = form;
+      const response = await api.post('/auth/register', formData);
 
       if (response.status === 201) {
         toast.success('Registration successful! Logging in...', { id: toastId });
@@ -141,6 +157,7 @@ const Register: React.FC = () => {
             { id: 'username', label: 'Username', type: 'text', placeholder: 'Your username' },
             { id: 'email', label: 'Email Address', type: 'email', placeholder: 'Your email' },
             { id: 'password', label: 'Password', type: 'password', placeholder: 'Minimum 8 characters' },
+            { id: 'confirm_password', label: 'Confirm Password', type: 'password', placeholder: 'Re-enter password' },
             { id: 'phone_number', label: 'Phone Number', type: 'tel', placeholder: 'e.g. +254712345678' }
           ].map(({ id, label, type, placeholder }) => (
             <div key={id}>

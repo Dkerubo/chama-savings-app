@@ -1,60 +1,70 @@
-import React, { useState } from 'react';
+// src/components/shared/UserTable.tsx
+import React, { useEffect, useState } from 'react';
 import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
+import { User } from '../../types';
 
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  is_active: boolean;
-  profile_picture?: string;
+interface Props {
+  users: User[];
 }
 
-const initialUsers: User[] = [
-  { id: 1, username: 'john_doe', email: 'john@example.com', role: 'member', is_active: true },
-  { id: 2, username: 'jane_smith', email: 'jane@example.com', role: 'member', is_active: false },
-  { id: 3, username: 'bob_brown', email: 'bob@example.com', role: 'member', is_active: true },
-  { id: 4, username: 'alice_white', email: 'alice@example.com', role: 'member', is_active: true },
-  { id: 5, username: 'eve_black', email: 'eve@example.com', role: 'member', is_active: false },
-  { id: 6, username: 'chris_green', email: 'chris@example.com', role: 'member', is_active: true },
-  { id: 7, username: 'dan_purple', email: 'dan@example.com', role: 'member', is_active: true }
-];
-
-const UserTable: React.FC = () => {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+const UserTable: React.FC<Props> = ({ users }) => {
+  const [localUsers, setLocalUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState<User>({
-    id: 0,
+    id: '',
     username: '',
     email: '',
-    role: 'user',
-    is_active: true
+    role: 'member',
   });
 
-  const getNextId = () => Math.max(...users.map(u => u.id)) + 1;
+  useEffect(() => {
+    setLocalUsers(users);
+  }, [users]);
+
+  const generateUniqueId = () => {
+    return `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  };
 
   const addUser = () => {
-    if (!newUser.username || !newUser.email) return alert('Fill all fields');
-    const userToAdd = { ...newUser, id: getNextId() };
-    setUsers([...users, userToAdd]);
-    setNewUser({ id: 0, username: '', email: '', role: 'user', is_active: true });
+    if (!newUser.username || !newUser.email) {
+      alert('Fill all fields');
+      return;
+    }
+
+    const userToAdd: User = {
+      ...newUser,
+      id: generateUniqueId(),
+    };
+
+    setLocalUsers([...localUsers, userToAdd]);
+
+    setNewUser({
+      id: '',
+      username: '',
+      email: '',
+      role: 'member',
+    });
   };
 
   const updateUser = () => {
     if (!editingUser) return;
-    setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+    setLocalUsers(
+      localUsers.map((u) => (u.id === editingUser.id ? editingUser : u))
+    );
     setEditingUser(null);
   };
 
-  const deleteUser = (id: number) => {
-    setUsers(users.filter(u => u.id !== id));
+  const deleteUser = (id: string) => {
+    setLocalUsers(localUsers.filter((u) => u.id !== id));
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeColor = (role: 'admin' | 'member') => {
     switch (role) {
-      case 'superadmin': return 'bg-purple-100 text-purple-800';
-      case 'admin': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'admin':
+        return 'bg-blue-100 text-blue-800';
+      case 'member':
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -69,25 +79,26 @@ const UserTable: React.FC = () => {
           <input
             type="text"
             placeholder="Username"
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="border rounded px-3 py-2"
             value={newUser.username}
-            onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+            onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
           />
           <input
             type="email"
             placeholder="Email"
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="border rounded px-3 py-2"
             value={newUser.email}
-            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
           />
           <select
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="border rounded px-3 py-2"
             value={newUser.role}
-            onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+            onChange={(e) =>
+              setNewUser({ ...newUser, role: e.target.value as 'admin' | 'member' })
+            }
           >
-            <option value="user">Member</option>
-            <option value="admin">Group Admin</option>
-            {/* <option value="superadmin">Superadmin</option> */}
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
           </select>
           <button
             className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 flex items-center justify-center"
@@ -108,23 +119,31 @@ const UserTable: React.FC = () => {
               placeholder="Username"
               className="border rounded px-3 py-2"
               value={editingUser.username}
-              onChange={e => setEditingUser({ ...editingUser, username: e.target.value })}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, username: e.target.value })
+              }
             />
             <input
               type="email"
               placeholder="Email"
               className="border rounded px-3 py-2"
               value={editingUser.email}
-              onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, email: e.target.value })
+              }
             />
             <select
               className="border rounded px-3 py-2"
               value={editingUser.role}
-              onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}
+              onChange={(e) =>
+                setEditingUser({
+                  ...editingUser,
+                  role: e.target.value as 'admin' | 'member',
+                })
+              }
             >
-              <option value="user">member</option>
-              <option value="admin">Group Admin</option>
-              {/* <option value="superadmin">Superadmin</option> */}
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
             </select>
             <button
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -150,25 +169,21 @@ const UserTable: React.FC = () => {
               <th className="px-6 py-3 text-left">Username</th>
               <th className="px-6 py-3 text-left">Email</th>
               <th className="px-6 py-3 text-left">Role</th>
-              <th className="px-6 py-3 text-left">Status</th>
               <th className="px-6 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {users.map(user => (
+            {localUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-3">{user.username}</td>
                 <td className="px-6 py-3">{user.email}</td>
                 <td className="px-6 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                      user.role
+                    )}`}
+                  >
                     {user.role}
-                  </span>
-                </td>
-                <td className="px-6 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    user.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {user.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-3 flex gap-4 items-center">

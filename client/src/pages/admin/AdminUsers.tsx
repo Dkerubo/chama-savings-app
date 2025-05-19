@@ -5,7 +5,7 @@ import { User } from '../../types';
 import UserTable from '../../components/shared/UserTable';
 
 const UsersPage: React.FC = () => {
-  const [user, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,7 +23,7 @@ const UsersPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">User List</h1>
-      <UserTable />
+      <UserTable users={users} />
     </div>
   );
 };

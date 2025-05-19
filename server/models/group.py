@@ -28,7 +28,7 @@ class Group(db.Model):
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
         self.admin_id = admin_id
-        self.target_amount = Decimal(str(target_amount))  # safe conversion
+        self.target_amount = Decimal(str(target_amount))
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -48,38 +48,37 @@ class Group(db.Model):
         except (InvalidOperation, ValueError):
             raise ValueError('Invalid target amount')
 
-    def serialize(self, include_members=False):
-        data = {
+    def calculate_current_amount(self):
+        # Example: sum all confirmed contributions (you may change the logic based on your schema)
+        return sum([c.amount for c in self.contributions if c.status == 'confirmed'])
+
+    def calculate_progress(self):
+        if self.target_amount <= 0:
+            return 0.0
+        return float((self.calculate_current_amount() / self.target_amount) * 100)
+
+    def serialize(self):
+        return {
             'id': self.id,
             'name': self.name,
             'description': self.description,
-            'created_at': self.created_at.isoformat(),
-            'target_amount': float(self.target_amount),
-            'current_amount': float(self.current_amount),
-            'progress': self.progress_percentage(),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'target_amount': float(self.target_amount or 0),
+            'current_amount': float(self.calculate_current_amount()),
             'is_public': self.is_public,
-            'status': self.status,
+            'status': self.status or 'active',
+            'admin_name': self.admin.username if self.admin else 'N/A',
             'admin_id': self.admin_id,
-            'admin_name': self.admin.username if self.admin else None,
             'meeting_schedule': self.meeting_schedule,
             'location': self.location,
             'logo_url': self.logo_url,
-            'member_count': self.active_members_count()
+            'progress': round(self.calculate_progress(), 2),
+            'member_count': len(self.members) if self.members else 0,
         }
-        if include_members:
-            data['members'] = [m.serialize() for m in self.members]
-        return data
-
-    def progress_percentage(self):
-        if self.target_amount <= 0:
-            return 0
-        return min(100, float((self.current_amount / self.target_amount) * 100))
-
-    def active_members_count(self):
-        return len([m for m in self.members if m.status == 'active'])
 
     def __repr__(self):
         return f'<Group {self.name} (ID: {self.id})>'
+
 
 @event.listens_for(Group, 'after_insert')
 def after_group_insert(mapper, connection, target):

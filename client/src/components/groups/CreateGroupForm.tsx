@@ -31,7 +31,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
@@ -45,10 +45,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
       return;
     }
 
-    const trimmedAmount = formData.target_amount.trim();
-    const amount = parseFloat(trimmedAmount);
-
-    if (!trimmedAmount || isNaN(amount) || amount <= 0) {
+    const target = parseFloat(formData.target_amount);
+    if (isNaN(target) || target <= 0) {
       toast.error('Please enter a valid target amount.');
       return;
     }
@@ -56,7 +54,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
     const payload = {
       name: formData.name.trim(),
       description: formData.description.trim() || null,
-      target_amount: amount,
+      target_amount: target,
       meeting_schedule: formData.meeting_schedule.trim() || null,
       location: formData.location.trim() || null,
       logo_url: formData.logo_url.trim() || null,
@@ -64,7 +62,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
     };
 
     try {
-      await axios.post('http://localhost:5000/api/groups/', payload, {
+      const res = await axios.post('http://localhost:5000/api/groups/', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -72,75 +70,101 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
         withCredentials: true,
       });
 
-      toast.success('Group created successfully!');
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      console.error('Create group failed:', error.response?.data || error.message);
+      if (res.status === 201) {
+        toast.success('Group created successfully!');
+        onSuccess();
+        onClose();
+      } else {
+        toast.error('Unexpected server response. Try again.');
+      }
+    } catch (err: any) {
+      console.error('Create group failed:', err.response?.data || err.message);
       toast.error(
-        error.response?.data?.error ||
+        err.response?.data?.error ||
           'Failed to create group. Please check your input and try again.'
       );
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold text-emerald-700 mb-4">
-          Create Group
-        </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-md w-full max-w-lg p-6">
+        <h2 className="text-xl font-semibold text-emerald-700 mb-4">Create New Group</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Group Name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="number"
-            name="target_amount"
-            placeholder="Target Amount"
-            value={formData.target_amount}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-          <input
-            type="text"
-            name="meeting_schedule"
-            placeholder="Meeting Schedule"
-            value={formData.meeting_schedule}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            name="location"
-            placeholder="Location"
-            value={formData.location}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <input
-            type="text"
-            name="logo_url"
-            placeholder="Logo URL"
-            value={formData.logo_url}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded"
-          />
-          <label className="flex items-center gap-2 text-sm">
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Group Name</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="e.g. Umoja Savings"
+              required
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="What is this group about?"
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Target Amount (KES)</label>
+            <input
+              type="number"
+              name="target_amount"
+              value={formData.target_amount}
+              onChange={handleChange}
+              placeholder="e.g. 50000"
+              required
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Meeting Schedule</label>
+            <input
+              type="text"
+              name="meeting_schedule"
+              value={formData.meeting_schedule}
+              onChange={handleChange}
+              placeholder="e.g. Every first Saturday"
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Location</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="e.g. Nairobi, Kenya"
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-700 block mb-1">Logo URL</label>
+            <input
+              type="text"
+              name="logo_url"
+              value={formData.logo_url}
+              onChange={handleChange}
+              placeholder="e.g. https://example.com/logo.png"
+              className="w-full border px-3 py-2 rounded"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
               name="is_public"
@@ -148,9 +172,10 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               onChange={handleChange}
               className="accent-emerald-700"
             />
-            Public Group
-          </label>
-          <div className="flex justify-end gap-2">
+            <label className="text-sm text-gray-700">Make group public</label>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
@@ -162,7 +187,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               type="submit"
               className="px-4 py-2 bg-emerald-700 text-white rounded hover:bg-emerald-800"
             >
-              Create
+              Create Group
             </button>
           </div>
         </form>

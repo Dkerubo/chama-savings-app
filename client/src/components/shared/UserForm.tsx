@@ -24,7 +24,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess, onCancel }) => {
         username: user.username,
         email: user.email,
         password: '',
-        role: user.role,
+        role: user.role || 'member',
       });
     }
   }, [user]);
@@ -43,8 +43,8 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSuccess, onCancel }) => {
     setError(null);
 
     try {
-      if (user) {
-        await updateUser(user.id, formData);
+      if (user && user.id) {
+        await updateUser(Number(user.id), formData); // Cast user.id to number
       } else {
         await createUser(formData);
       }
