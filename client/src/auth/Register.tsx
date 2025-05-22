@@ -16,7 +16,7 @@ const Register: React.FC = () => {
     email: '',
     password: '',
     confirm_password: '',
-    phone_number: ''
+    phone_number: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,55 +28,38 @@ const Register: React.FC = () => {
 
     switch (name) {
       case 'username':
-        if (!value.match(/^[a-zA-Z0-9_]{3,20}$/)) {
-          newErrors.username = '3-20 characters (letters, numbers, underscores)';
-        } else {
-          delete newErrors.username;
-        }
+        newErrors.username = /^[a-zA-Z0-9_]{3,20}$/.test(value)
+          ? ''
+          : '3-20 characters (letters, numbers, underscores)';
         break;
       case 'email':
-        if (!value.match(/^[^@]+@[^@]+\.[^@]+$/)) {
-          newErrors.email = 'Invalid email format';
-        } else {
-          delete newErrors.email;
-        }
+        newErrors.email = /^[^@]+@[^@]+\.[^@]+$/.test(value)
+          ? ''
+          : 'Invalid email format';
         break;
       case 'password':
-        if (value.length < 8) {
-          newErrors.password = 'Must be at least 8 characters';
-        } else {
-          delete newErrors.password;
-        }
-
+        newErrors.password = value.length < 8 ? 'Must be at least 8 characters' : '';
         if (form.confirm_password && form.confirm_password !== value) {
           newErrors.confirm_password = 'Passwords do not match';
-        } else {
-          delete newErrors.confirm_password;
         }
         break;
       case 'confirm_password':
-        if (value !== form.password) {
-          newErrors.confirm_password = 'Passwords do not match';
-        } else {
-          delete newErrors.confirm_password;
-        }
+        newErrors.confirm_password = value !== form.password ? 'Passwords do not match' : '';
         break;
       case 'phone_number':
-        if (!value.match(/^\+?\d{9,15}$/)) {
-          newErrors.phone_number = 'Enter a valid phone number';
-        } else {
-          delete newErrors.phone_number;
-        }
+        newErrors.phone_number = /^\+?\d{9,15}$/.test(value)
+          ? ''
+          : 'Enter a valid phone number';
         break;
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.values(newErrors).every((err) => err === '');
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
   };
 
@@ -88,11 +71,9 @@ const Register: React.FC = () => {
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
 
-    const isValid = Object.entries(form).every(([name, value]) =>
-      validateField(name, value)
-    );
+    const isValid = Object.entries(form).every(([name, value]) => validateField(name, value));
 
-    if (!isValid || Object.keys(errors).length > 0) {
+    if (!isValid) {
       toast.error('Please correct the highlighted errors.');
       return;
     }
@@ -104,6 +85,7 @@ const Register: React.FC = () => {
     try {
       const { confirm_password, ...formData } = form;
 
+      // REGISTER request
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: 'POST',
         headers: {
@@ -114,11 +96,12 @@ const Register: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Registration failed');
+        throw new Error(errorData?.error || 'Registration failed');
       }
 
       toast.success('Registration successful! Logging in...', { id: toastId });
 
+      // LOGIN request
       const loginResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -133,9 +116,9 @@ const Register: React.FC = () => {
       let loginData: any = null;
 
       try {
-        loginData = await loginResponse.clone().json(); // try parsing as JSON
+        loginData = await loginResponse.clone().json();
       } catch {
-        const text = await loginResponse.text(); // fallback to text
+        const text = await loginResponse.text();
         console.error('Unexpected response:', text);
         throw new Error('Failed to parse login response JSON.');
       }
@@ -170,7 +153,9 @@ const Register: React.FC = () => {
         <h2 className="text-3xl font-bold text-center text-emerald-700 mb-6">Sign Up</h2>
 
         {errors.form && (
-          <div className="mb-4 bg-red-100 text-red-700 p-3 rounded text-sm">{errors.form}</div>
+          <div className="mb-4 bg-red-100 text-red-700 p-3 rounded text-sm">
+            {errors.form}
+          </div>
         )}
 
         <form onSubmit={handleRegister} className="space-y-5" noValidate>
@@ -179,10 +164,12 @@ const Register: React.FC = () => {
             { id: 'email', label: 'Email Address', type: 'email', placeholder: 'Your email' },
             { id: 'password', label: 'Password', type: 'password', placeholder: 'Minimum 8 characters' },
             { id: 'confirm_password', label: 'Confirm Password', type: 'password', placeholder: 'Re-enter password' },
-            { id: 'phone_number', label: 'Phone Number', type: 'tel', placeholder: 'e.g. +254712345678' }
+            { id: 'phone_number', label: 'Phone Number', type: 'tel', placeholder: 'e.g. +254712345678' },
           ].map(({ id, label, type, placeholder }) => (
             <div key={id}>
-              <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+              <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+                {label}
+              </label>
               <input
                 id={id}
                 name={id}
@@ -196,7 +183,9 @@ const Register: React.FC = () => {
                   errors[id] ? 'border-red-500 focus:ring-red-500' : 'focus:ring-emerald-500'
                 }`}
               />
-              {errors[id] && <p className="mt-1 text-sm text-red-600">{errors[id]}</p>}
+              {errors[id] && (
+                <p className="mt-1 text-sm text-red-600">{errors[id]}</p>
+              )}
             </div>
           ))}
 
@@ -211,7 +200,9 @@ const Register: React.FC = () => {
 
         <p className="text-center text-sm mt-5 text-gray-600">
           Already registered?{' '}
-          <a href="/login" className="text-emerald-600 font-medium hover:underline">Login</a>
+          <a href="/login" className="text-emerald-600 font-medium hover:underline">
+            Login
+          </a>
         </p>
       </div>
     </div>
