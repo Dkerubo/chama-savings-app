@@ -29,7 +29,7 @@ def create_app():
     app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
     # === Init extensions ===
-    CORS(app, resources={r"/api/*": {"origins": os.getenv("FRONTEND_ORIGIN", "http://127.0.0.1:5173")}}, supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://chama-savings-app-1.onrender.com")}}, supports_credentials=True)
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)  
