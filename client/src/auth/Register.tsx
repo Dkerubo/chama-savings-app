@@ -1,7 +1,6 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../api/api';
 
 interface FormState {
   username: string;
@@ -100,44 +99,59 @@ const Register: React.FC = () => {
 
     setErrors({});
     setIsLoading(true);
-
     const toastId = toast.loading('Registering your account...');
 
     try {
       const { confirm_password, ...formData } = form;
-      const response = await api.post('/auth/register', formData);
 
-      if (response.status === 201) {
-        toast.success('Registration successful! Logging in...', { id: toastId });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-        const loginResponse = await api.post('/auth/login', {
-          username: form.username,
-          password: form.password
-        });
-
-        const { access_token, refresh_token, user } = loginResponse.data;
-
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('refresh_token', refresh_token);
-        localStorage.setItem('user', JSON.stringify(user));
-
-        navigate(user.role === 'superadmin' ? '/admin/AdminDashboard' : '/member/Dashboard', {
-          state: { registrationSuccess: true },
-          replace: true
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Registration failed');
       }
+
+      toast.success('Registration successful! Logging in...', { id: toastId });
+
+      const loginResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: form.username,
+          password: form.password,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Login failed after registration');
+      }
+
+      const loginData = await loginResponse.json();
+
+      const { access_token, refresh_token, user } = loginData;
+
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      navigate(
+        user.role === 'superadmin' ? '/admin/AdminDashboard' : '/member/Dashboard',
+        { state: { registrationSuccess: true }, replace: true }
+      );
     } catch (err: any) {
       toast.error('Registration failed.', { id: toastId });
 
-      if (err.response?.data?.details) {
-        setErrors(typeof err.response.data.details === 'string'
-          ? { form: err.response.data.details }
-          : err.response.data.details);
-      } else {
-        setErrors({
-          form: err.response?.data?.error || err.message || 'Something went wrong.'
-        });
-      }
+      setErrors({
+        form: err.message || 'Something went wrong.',
+      });
     } finally {
       setIsLoading(false);
     }
