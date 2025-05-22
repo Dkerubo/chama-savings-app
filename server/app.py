@@ -10,13 +10,10 @@ from server.routes.group import group_bp
 from server.routes.member_routes import member_bp
 from server.routes.contribution_routes import contribution_bp
 
-# Load environment variables
+# Load environment variables from .env
 load_dotenv()
 
-# Initialize extensions
-jwt = JWTManager()  
-# db and migrate are already initialized in extensions.py
-
+# Create the Flask app
 def create_app():
     app = Flask(__name__)
 
@@ -25,14 +22,17 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'default-jwt-secret')
-    app.config['JWT_TOKEN_LOCATION'] = ['headers']  # Or ['headers', 'cookies'] if you're using cookies
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
     app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
-    # === Init extensions ===
-    CORS(app, resources={r"/api/*": {"origins": os.getenv("FRONTEND_ORIGIN", "https://chama-savings-app-1.onrender.com")}}, supports_credentials=True)
+    # === CORS Fix ===
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://chama-savings-app-1.onrender.com")
+    CORS(app, resources={r"/api/*": {"origins": frontend_origin}}, supports_credentials=True)
+
+    # === Init Extensions ===
     db.init_app(app)
     migrate.init_app(app, db)
-    jwt.init_app(app)  
+    jwt.init_app(app)
     api.init_app(app)
 
     # === Register Blueprints ===
@@ -41,8 +41,8 @@ def create_app():
     app.register_blueprint(group_bp, url_prefix='/api/groups')
     app.register_blueprint(member_bp, url_prefix='/api/members')
     app.register_blueprint(contribution_bp, url_prefix='/api/contributions')
-    
-    # === Root route ===
+
+    # === Root test route ===
     @app.route('/')
     def home():
         return jsonify({"message": "✅ Welcome to the Chama API"})
