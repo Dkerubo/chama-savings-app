@@ -130,11 +130,19 @@ const Register: React.FC = () => {
         }),
       });
 
-      if (!loginResponse.ok) {
-        throw new Error('Login failed after registration');
+      let loginData: any = null;
+
+      try {
+        loginData = await loginResponse.clone().json(); // try parsing as JSON
+      } catch {
+        const text = await loginResponse.text(); // fallback to text
+        console.error('Unexpected response:', text);
+        throw new Error('Failed to parse login response JSON.');
       }
 
-      const loginData = await loginResponse.json();
+      if (!loginResponse.ok) {
+        throw new Error(loginData?.error || 'Login failed after registration');
+      }
 
       const { access_token, refresh_token, user } = loginData;
 
@@ -148,7 +156,6 @@ const Register: React.FC = () => {
       );
     } catch (err: any) {
       toast.error('Registration failed.', { id: toastId });
-
       setErrors({
         form: err.message || 'Something went wrong.',
       });
