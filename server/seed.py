@@ -1,5 +1,5 @@
 # seed.py
-from app import create_app
+from server.app import create_app
 from server.extensions import db
 from server.models.user import User
 from server.models.group import Group
@@ -7,14 +7,13 @@ from server.models.member import Member
 from server.models.contribution import Contribution
 from faker import Faker
 import random as rc
-from datetime import timedelta
 
 fake = Faker()
 app = create_app()
 
 with app.app_context():
     try:
-        # Clear existing data
+        # Clear existing data (in reverse order to avoid foreign key conflicts)
         Contribution.query.delete()
         Member.query.delete()
         Group.query.delete()
@@ -22,14 +21,15 @@ with app.app_context():
         db.session.commit()
         print("🔄 Old data cleared.")
 
-        # Seed admin and treasurer Users
-        admin_user = User(username="admin", email="admin@chama.com", password="admin123", role="Admin")
-        treasurer_user = User(username="treasurer", email="treasurer@chama.com", password="treasurer123", role="Treasurer")
-        db.session.add_all([admin_user, treasurer_user])
+        # Create superadmin, admin, and treasurer users
+        superadmin_user = User(username="superadmin", email="superadmin@chama.com", password="admin123", role="superadmin")
+        admin_user = User(username="admin", email="admin@chama.com", password="admin123", role="admin")
+        treasurer_user = User(username="treasurer", email="treasurer@chama.com", password="treasurer123", role="treasurer")
+        db.session.add_all([superadmin_user, admin_user, treasurer_user])
         db.session.commit()
-        print(f"✅ New users registered: {admin_user.username}, {treasurer_user.username}")
+        print("✅ Created users: superadmin, admin, treasurer")
 
-        # Seed Groups using admin ID
+        # Seed groups using admin user
         groups = []
         group_names = ["Umoja Savings", "Harambee Investors", "Twende Pamoja", "Mali Safi", "Faida Group"]
         for name in group_names:
@@ -40,12 +40,12 @@ with app.app_context():
                 admin_id=admin_user.id
             )
             db.session.add(group)
-            db.session.flush()  # Get group.id before commit
+            db.session.flush()
             print(f"✅ Group created: {group.name} (ID: {group.id})")
             groups.append(group)
         db.session.commit()
 
-        # Seed Members with linked Users and Groups
+        # Seed members and link them to users and groups
         members = []
         member_users = []
         for i in range(20):
@@ -57,10 +57,10 @@ with app.app_context():
                     username=username,
                     email=email,
                     password="member123",
-                    role="Member"
+                    role="member"
                 )
                 db.session.add(user)
-                db.session.flush()  # Ensure user.id is available
+                db.session.flush()
 
                 member = Member(
                     name=fake.name(),
@@ -72,13 +72,13 @@ with app.app_context():
                     group_id=rc.choice(groups).id
                 )
                 db.session.add(member)
-                db.session.flush()  # Ensure member.id is available
+                db.session.flush()
 
-                user.member_id = member.id  # Backlink user to member
+                user.member_id = member.id
                 members.append(member)
                 member_users.append(user)
 
-                print(f"👤 Member {i+1}/20 created: {member.name} ({member.status}) -> user: {user.username}")
+                print(f"👤 Member {i+1}/20 created: {member.name} ({member.status}) → {user.username}")
 
             except Exception as e:
                 db.session.rollback()
@@ -87,7 +87,7 @@ with app.app_context():
 
         db.session.commit()
 
-        # Seed Contributions
+        # Seed contributions
         contributions = []
         for i in range(100):
             try:
@@ -107,10 +107,8 @@ with app.app_context():
                 print(f"❌ Error creating contribution {i+1}: {e}")
         db.session.commit()
 
-        # Summary
-        total_users = [admin_user, treasurer_user] + member_users
         print("\n✅ Chama database seeded successfully:")
-        print(f"- {len(total_users)} users")
+        print(f"- {len([superadmin_user, admin_user, treasurer_user] + member_users)} users")
         print(f"- {len(groups)} groups")
         print(f"- {len(members)} members")
         print(f"- {len(contributions)} contributions")
