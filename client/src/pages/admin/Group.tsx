@@ -1,4 +1,4 @@
-// src/pages/groups/CreateGroupPage.tsx
+// src/pages/admin/CreateGroupPage.tsx
 import GroupTable from "../../components/groups/GroupTable";
 export default function CreateGroupPage() {
   return (
