@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { Group, CreateGroupPayload } from '../types/group';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://chama-savings-app.onrender.com/api';
 
 const instance = axios.create({
   baseURL: `${API_URL}/groups`,
