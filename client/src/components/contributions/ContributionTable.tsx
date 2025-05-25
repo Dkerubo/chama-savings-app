@@ -38,9 +38,11 @@ const ContributionTable = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const API_BASE = 'https://chama-savings-app.onrender.com/api/contributions';
+
   const fetchContributions = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/contributions/', {
+      const res = await axios.get(API_BASE, {
         withCredentials: true,
       });
       setContributions(res.data);
@@ -55,7 +57,7 @@ const ContributionTable = () => {
     try {
       if (editId !== null) {
         await axios.put(
-          `http://localhost:5000/api/contributions/${editId}`,
+          `${API_BASE}/${editId}`,
           {
             ...formData,
             amount: parseFloat(formData.amount),
@@ -65,7 +67,7 @@ const ContributionTable = () => {
         toast.success('Contribution updated');
       } else {
         await axios.post(
-          'http://localhost:5000/api/contributions/',
+          API_BASE,
           {
             ...formData,
             member_id: user.id,
