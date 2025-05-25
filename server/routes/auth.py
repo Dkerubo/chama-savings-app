@@ -10,6 +10,7 @@ from server.extensions import db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
+
 # ====== Register ======
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -23,18 +24,17 @@ def register():
         if missing:
             return jsonify({"error": "Missing fields", "missing": missing}), 400
 
-        # Create user
         user = User(
             username=data['username'],
             email=data['email'],
-            password=data['password'],  # Assumes password is hashed in the model
+            password=data['password'],
             phone_number=data.get('phone_number'),
             role=data.get('role', 'member')
         )
+
         db.session.add(user)
         db.session.commit()
 
-        # Generate tokens
         access_token = create_access_token(identity=user.serialize())
         refresh_token = create_refresh_token(identity=user.serialize())
 
@@ -45,6 +45,10 @@ def register():
             "refresh_token": refresh_token
         }), 201
 
+    except ValueError as ve:
+        db.session.rollback()
+        return jsonify({"error": str(ve)}), 400
+
     except IntegrityError:
         db.session.rollback()
         return jsonify({"error": "Username or email already exists"}), 409
@@ -54,6 +58,7 @@ def register():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Registration failed", "details": str(e)}), 500
+
 
 # ====== Login ======
 @auth_bp.route('/login', methods=['POST'])
@@ -66,9 +71,11 @@ def login():
         username_or_email = data['username']
         password = data['password']
 
-        user = (User.query.filter_by(email=username_or_email.lower()).first()
-                if '@' in username_or_email else
-                User.query.filter_by(username=username_or_email).first())
+        user = (
+            User.query.filter_by(email=username_or_email.lower()).first()
+            if '@' in username_or_email else
+            User.query.filter_by(username=username_or_email).first()
+        )
 
         if not user or not user.check_password(password):
             return jsonify({"error": "Invalid credentials"}), 401
@@ -94,13 +101,15 @@ def login():
         traceback.print_exc()
         return jsonify({"error": "Login failed", "details": str(e)}), 500
 
-# ====== Refresh ======
+
+# ====== Refresh Token ======
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
     current_user = get_jwt_identity()
     new_token = create_access_token(identity=current_user)
     return jsonify({"access_token": new_token}), 200
+
 
 # ====== Logout ======
 @auth_bp.route('/logout', methods=['POST'])
@@ -110,7 +119,8 @@ def logout():
     unset_jwt_cookies(response)
     return response, 200
 
-# ====== Get Current User ======
+
+# ====== Get Current User Info ======
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def me():
