@@ -57,24 +57,24 @@ class Group(db.Model):
             return 0.0
         return float((self.calculate_current_amount() / self.target_amount) * 100)
 
-    def serialize(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'target_amount': float(self.target_amount or 0),
-            'current_amount': float(self.calculate_current_amount()),
-            'is_public': self.is_public,
-            'status': self.status or 'active',
-            'admin_name': self.admin.username if self.admin else 'N/A',
-            'admin_id': self.admin_id,
-            'meeting_schedule': self.meeting_schedule,
-            'location': self.location,
-            'logo_url': self.logo_url,
-            'progress': round(self.calculate_progress(), 2),
-            'member_count': len(self.members) if self.members else 0,
-        }
+def serialize(self):
+    return {
+        'id': self.id,
+        'name': self.name,
+        'description': self.description,
+        'created_at': self.created_at.isoformat() if self.created_at else None,
+        'target_amount': float(self.target_amount or 0),
+        'current_amount': float(self.calculate_current_amount()),
+        'is_public': self.is_public,
+        'status': self.status or 'active',
+        'admin_name': self.admin.username if self.admin else 'Unknown',
+        'admin_id': self.admin_id,
+        'meeting_schedule': self.meeting_schedule,
+        'location': self.location,
+        'logo_url': self.logo_url,
+        'progress': round(self.calculate_progress(), 2),
+        'member_count': len(self.members) if self.members else 0,
+    }
 
     def __repr__(self):
         return f'<Group {self.name} (ID: {self.id})>'
