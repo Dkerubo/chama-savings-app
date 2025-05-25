@@ -189,6 +189,12 @@ npm test
 - Deploy static files to Vercel/Netlify
 - Configure production API base URL
 
+✅ Admin Credentials Created
+Role	         Username	      Email	                  Password
+Superadmin	   superadmin	   superadmin@chama.com	   admin123
+Admin	         admin	         admin@chama.com	      admin123
+Treasurer	   treasurer	   treasurer@chama.com	   treasurer123
+
 ## Contributing
 
 1. Fork the project
