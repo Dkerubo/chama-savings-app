@@ -15,6 +15,12 @@ interface Contribution {
   status: 'pending' | 'confirmed' | 'rejected';
   receipt_number: string;
   member_name: string | null;
+  group_name?: string;
+}
+
+interface Group {
+  id: number;
+  name: string;
 }
 
 interface AuthUser {
@@ -28,6 +34,7 @@ const ContributionTable = () => {
   const auth = useAuth();
   const user = auth.user as AuthUser | null;
   const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     amount: '',
@@ -38,14 +45,27 @@ const ContributionTable = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const API_BASE = 'https://chama-savings-app.onrender.com/api/contributions';
+  const API_BASE = 'https://chama-savings-app.onrender.com/api';
 
   const fetchContributions = async () => {
     try {
-      const res = await axios.get(API_BASE, { withCredentials: true });
-      setContributions(res.data);
+      const res = await axios.get(`${API_BASE}/contributions`, {
+        withCredentials: true,
+      });
+      const all = res.data;
+      const filtered = user?.role === 'admin' ? all : all.filter((c: Contribution) => c.member_id === user?.id);
+      setContributions(filtered);
     } catch (err) {
       console.error('Failed to fetch contributions:', err);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/groups`, { withCredentials: true });
+      setGroups(res.data);
+    } catch (err) {
+      console.error('Failed to fetch groups:', err);
     }
   };
 
@@ -53,26 +73,17 @@ const ContributionTable = () => {
     e.preventDefault();
     if (!user) return;
     try {
+      const payload = {
+        ...formData,
+        member_id: user.id,
+        amount: parseFloat(formData.amount),
+        group_id: parseInt(formData.group_id),
+      };
       if (editId !== null) {
-        await axios.put(
-          `${API_BASE}/${editId}`,
-          {
-            ...formData,
-            amount: parseFloat(formData.amount),
-          },
-          { withCredentials: true }
-        );
+        await axios.put(`${API_BASE}/contributions/${editId}`, payload, { withCredentials: true });
         toast.success('Contribution updated');
       } else {
-        await axios.post(
-          API_BASE,
-          {
-            ...formData,
-            member_id: user.id,
-            amount: parseFloat(formData.amount),
-          },
-          { withCredentials: true }
-        );
+        await axios.post(`${API_BASE}/contributions`, payload, { withCredentials: true });
         toast.success('Contribution submitted');
       }
       setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
@@ -85,20 +96,20 @@ const ContributionTable = () => {
     }
   };
 
-  const handleEdit = (contribution: Contribution) => {
+  const handleEdit = (c: Contribution) => {
     setFormData({
-      amount: contribution.amount.toString(),
-      note: contribution.note,
-      receipt_number: contribution.receipt_number,
-      group_id: contribution.group_id.toString(),
+      amount: c.amount.toString(),
+      note: c.note,
+      receipt_number: c.receipt_number,
+      group_id: c.group_id.toString(),
     });
-    setEditId(contribution.id);
+    setEditId(c.id);
     setShowForm(true);
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`${API_BASE}/${id}`, { withCredentials: true });
+      await axios.delete(`${API_BASE}/contributions/${id}`, { withCredentials: true });
       toast.success('Contribution deleted');
       fetchContributions();
     } catch (err) {
@@ -109,6 +120,7 @@ const ContributionTable = () => {
 
   useEffect(() => {
     fetchContributions();
+    fetchGroups();
   }, []);
 
   const filteredContributions = contributions.filter((c) =>
@@ -143,15 +155,10 @@ const ContributionTable = () => {
       </div>
 
       {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white shadow rounded p-4 mb-4 space-y-3"
-        >
+        <form onSubmit={handleSubmit} className="bg-white shadow rounded p-4 mb-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (KES)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (KES)</label>
               <input
                 type="number"
                 name="amount"
@@ -162,9 +169,7 @@ const ContributionTable = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Receipt Number
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Number</label>
               <input
                 type="text"
                 name="receipt_number"
@@ -174,23 +179,22 @@ const ContributionTable = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Group ID
-              </label>
-              <input
-                type="text"
-                name="group_id"
-                required
+              <label className="block text-sm font-medium text-gray-700 mb-1">Group</label>
+              <select
                 value={formData.group_id}
                 onChange={(e) => setFormData({ ...formData, group_id: e.target.value })}
+                required
                 className="border px-3 py-2 rounded w-full"
-              />
+              >
+                <option value="">Select Group</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
             <textarea
               name="note"
               value={formData.note}
@@ -199,10 +203,7 @@ const ContributionTable = () => {
             />
           </div>
           <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800"
-            >
+            <button type="submit" className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800">
               {editId ? 'Update' : 'Submit'}
             </button>
           </div>
@@ -216,6 +217,7 @@ const ContributionTable = () => {
               <th className="px-4 py-2 text-left">Member</th>
               <th className="px-4 py-2 text-left">Amount</th>
               <th className="px-4 py-2 text-left">Receipt</th>
+              <th className="px-4 py-2 text-left">Group</th>
               <th className="px-4 py-2 text-left">Note</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Date</th>
@@ -228,6 +230,7 @@ const ContributionTable = () => {
                 <td className="px-4 py-2">{c.member_name || 'N/A'}</td>
                 <td className="px-4 py-2">{c.amount}</td>
                 <td className="px-4 py-2">{c.receipt_number}</td>
+                <td className="px-4 py-2">{groups.find((g) => g.id === c.group_id)?.name || 'N/A'}</td>
                 <td className="px-4 py-2">{c.note}</td>
                 <td className="px-4 py-2 capitalize">{c.status}</td>
                 <td className="px-4 py-2">{new Date(c.created_at).toLocaleDateString()}</td>
