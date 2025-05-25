@@ -64,15 +64,13 @@ const Register: React.FC = () => {
   };
 
   const handleBlur = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    validateField(name, value);
+    validateField(e.target.name, e.target.value);
   };
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
 
     const isValid = Object.entries(form).every(([name, value]) => validateField(name, value));
-
     if (!isValid) {
       toast.error('Please correct the highlighted errors.');
       return;
@@ -85,12 +83,10 @@ const Register: React.FC = () => {
     try {
       const { confirm_password, ...formData } = form;
 
-      // REGISTER request
+      // POST to register endpoint
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -101,27 +97,17 @@ const Register: React.FC = () => {
 
       toast.success('Registration successful! Logging in...', { id: toastId });
 
-      // LOGIN request
+      // Login right after registration
       const loginResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: form.username,
           password: form.password,
         }),
       });
 
-      let loginData: any = null;
-
-      try {
-        loginData = await loginResponse.clone().json();
-      } catch {
-        const text = await loginResponse.text();
-        console.error('Unexpected response:', text);
-        throw new Error('Failed to parse login response JSON.');
-      }
+      const loginData = await loginResponse.json();
 
       if (!loginResponse.ok) {
         throw new Error(loginData?.error || 'Login failed after registration');
@@ -138,10 +124,9 @@ const Register: React.FC = () => {
         { state: { registrationSuccess: true }, replace: true }
       );
     } catch (err: any) {
-      toast.error('Registration failed.', { id: toastId });
-      setErrors({
-        form: err.message || 'Something went wrong.',
-      });
+      console.error(err);
+      toast.error(err.message || 'Registration failed.', { id: toastId });
+      setErrors({ form: err.message });
     } finally {
       setIsLoading(false);
     }
