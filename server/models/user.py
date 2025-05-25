@@ -24,7 +24,7 @@ class User(db.Model):
     reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
-    admin_groups = db.relationship('Group', back_populates='admin', cascade='all, delete-orphan')
+    admin_groups = db.relationship('Group', back_populates='admin', cascade='all, delete')
     members = db.relationship('Member', back_populates='user', cascade='all, delete-orphan')
 
     def __init__(self, username=None, email=None, password=None, **kwargs):
