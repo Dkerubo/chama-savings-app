@@ -1,3 +1,4 @@
+// src/App.tsx
 import "./App.scss";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -27,7 +28,7 @@ const MemberLayout = lazy(() => import("./layouts/MemberLayout"));
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const CreateGroupPage = lazy(() => import("./pages/admin/Groups"));
+const CreateGroupPage = lazy(() => import("./pages/groups/CreateGroupPage")); // ✅ Correct import
 const ContributionPage = lazy(() => import("./pages/admin/Contributions"));
 
 // Member Pages
@@ -69,6 +70,8 @@ function App() {
                       <Route index element={<AdminDashboard />} />
                       <Route path="dashboard" element={<AdminDashboard />} />
                       <Route path="users" element={<AdminUsers />} />
+                      <Route path="groups" element={<CreateGroupPage />} /> {/* ✅ Added */}
+                      <Route path="contributions" element={<ContributionsPage />} />
                     </Route>
 
                     {/* Member Routes */}
