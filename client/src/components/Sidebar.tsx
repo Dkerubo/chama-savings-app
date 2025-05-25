@@ -11,9 +11,6 @@ const Sidebar = ({ role }: Props) => {
     { label: "Dashboard", path: "/admin/dashboard" },
     { label: "Users", path: "/admin/users" }, // Added here
     { label: "Groups", path: "/admin/groups" },
-    { label: "Loans", path: "/admin/loans" },
-    { label: "Investments", path: "/admin/investments" },
-    { label: "Meetings", path: "/admin/meetings" },
     { label: "All Contributions", path: "/admin/contributions" },
   ];
 
@@ -21,10 +18,8 @@ const Sidebar = ({ role }: Props) => {
     { label: "Dashboard", path: "/member/dashboard" },
     { label: "My Profile", path: "/member/Profile" },
     { label: "Create Group", path: "/member/create-group" },
-    // { label: "My Groups", path: "/member/groups" },
     { label: "Contributions", path: "/member/contributions" },
-      // { label: "Invitations", path: "/member/invitations" },
-    // { label: "My Contributions", path: "/contributions" },
+   
   ];
 
   const links = role === "admin" ? adminLinks : memberLinks;
