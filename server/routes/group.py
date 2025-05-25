@@ -16,8 +16,8 @@ def get_all_groups():
         groups = Group.query.all()
         return jsonify([group.serialize() for group in groups]), 200
     except Exception as e:
-        print("❌ Error fetching groups:", repr(e))
-        return jsonify({'error': 'Failed to retrieve groups'}), 500
+        print("❌ Error in /api/groups/:", e)
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # ─────────────────────────────
