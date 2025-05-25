@@ -2,169 +2,100 @@
 import React, { useEffect, useState } from 'react';
 import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
 import { User } from '../../types';
+import { createUser, updateUser, deleteUser as apiDeleteUser } from '../../api/userApi';
 
 interface Props {
   users: User[];
+  setUsers: (users: User[]) => void;
 }
 
-const UserTable: React.FC<Props> = ({ users }) => {
-  const [localUsers, setLocalUsers] = useState<User[]>([]);
+const UserTable: React.FC<Props> = ({ users, setUsers }) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState<User>({
+  const [newUser, setNewUser] = useState<User & { password: string }>({
     id: '',
     username: '',
     email: '',
     role: 'member',
+    password: '',
   });
 
   useEffect(() => {
-    setLocalUsers(users);
+    setUsers(users);
   }, [users]);
 
-  const generateUniqueId = () => {
-    return `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  };
-
-  const addUser = () => {
-    if (!newUser.username || !newUser.email) {
-      alert('Fill all fields');
+  const handleAddUser = async () => {
+    if (!newUser.username || !newUser.email || !newUser.password) {
+      alert('Please fill all fields including password');
       return;
     }
-
-    const userToAdd: User = {
-      ...newUser,
-      id: generateUniqueId(),
-    };
-
-    setLocalUsers([...localUsers, userToAdd]);
-
-    setNewUser({
-      id: '',
-      username: '',
-      email: '',
-      role: 'member',
-    });
-  };
-
-  const updateUser = () => {
-    if (!editingUser) return;
-    setLocalUsers(
-      localUsers.map((u) => (u.id === editingUser.id ? editingUser : u))
-    );
-    setEditingUser(null);
-  };
-
-  const deleteUser = (id: string) => {
-    setLocalUsers(localUsers.filter((u) => u.id !== id));
-  };
-
-  const getRoleBadgeColor = (role: 'admin' | 'member') => {
-    switch (role) {
-      case 'admin':
-        return 'bg-blue-100 text-blue-800';
-      case 'member':
-      default:
-        return 'bg-gray-100 text-gray-800';
+    try {
+      const created = await createUser(newUser);
+      setUsers([...users, created]);
+      setNewUser({ id: '', username: '', email: '', role: 'member', password: '' });
+    } catch (err) {
+      alert('Failed to create user');
     }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    try {
+      await updateUser(Number(editingUser.id), editingUser);
+      setUsers(users.map(u => (u.id === editingUser.id ? editingUser : u)));
+      setEditingUser(null);
+    } catch (err) {
+      alert('Update failed');
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    try {
+      await apiDeleteUser(Number(id));
+      setUsers(users.filter(u => u.id !== id));
+    } catch (err) {
+      alert('Delete failed');
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    return role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-8">
-      <h2 className="text-2xl font-bold text-emerald-700">User Management</h2>
-
-      {/* Add User */}
-      <div className="bg-white p-4 shadow rounded-lg border space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800">Add New User</h3>
-        <div className="grid md:grid-cols-4 gap-4">
-          <input
-            type="text"
-            placeholder="Username"
-            className="border rounded px-3 py-2"
-            value={newUser.username}
-            onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            className="border rounded px-3 py-2"
-            value={newUser.email}
-            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-          />
-          <select
-            className="border rounded px-3 py-2"
-            value={newUser.role}
-            onChange={(e) =>
-              setNewUser({ ...newUser, role: e.target.value as 'admin' | 'member' })
-            }
-          >
+    <div className="space-y-8">
+      <div className="bg-white p-4 rounded shadow border">
+        <h3 className="text-lg font-semibold">Add New User</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input type="text" placeholder="Username" className="border rounded p-2" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
+          <input type="email" placeholder="Email" className="border rounded p-2" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
+          <input type="password" placeholder="Password" className="border rounded p-2" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
+          <select className="border rounded p-2" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
-          <button
-            className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800 flex items-center justify-center"
-            onClick={addUser}
-          >
-            <FiPlus className="mr-1" /> Add
-          </button>
+          <button className="bg-emerald-700 text-white px-4 py-2 rounded" onClick={handleAddUser}><FiPlus /> Add</button>
         </div>
       </div>
 
-      {/* Edit User */}
       {editingUser && (
-        <div className="bg-white p-4 shadow rounded-lg border space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800">Edit User</h3>
-          <div className="grid md:grid-cols-5 gap-4">
-            <input
-              type="text"
-              placeholder="Username"
-              className="border rounded px-3 py-2"
-              value={editingUser.username}
-              onChange={(e) =>
-                setEditingUser({ ...editingUser, username: e.target.value })
-              }
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              className="border rounded px-3 py-2"
-              value={editingUser.email}
-              onChange={(e) =>
-                setEditingUser({ ...editingUser, email: e.target.value })
-              }
-            />
-            <select
-              className="border rounded px-3 py-2"
-              value={editingUser.role}
-              onChange={(e) =>
-                setEditingUser({
-                  ...editingUser,
-                  role: e.target.value as 'admin' | 'member',
-                })
-              }
-            >
+        <div className="bg-white p-4 rounded shadow border">
+          <h3 className="text-lg font-semibold">Edit User</h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <input type="text" className="border rounded p-2" value={editingUser.username} onChange={e => setEditingUser({ ...editingUser, username: e.target.value })} />
+            <input type="email" className="border rounded p-2" value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} />
+            <select className="border rounded p-2" value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}>
               <option value="member">Member</option>
               <option value="admin">Admin</option>
             </select>
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              onClick={updateUser}
-            >
-              Update
-            </button>
-            <button
-              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              onClick={() => setEditingUser(null)}
-            >
-              Cancel
-            </button>
+            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={handleUpdateUser}>Update</button>
+            <button className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setEditingUser(null)}>Cancel</button>
           </div>
         </div>
       )}
 
-      {/* User Table */}
-      <div className="bg-white shadow rounded-lg overflow-x-auto border">
+      <div className="bg-white rounded shadow border overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-emerald-50 text-emerald-800 uppercase text-xs font-semibold">
+          <thead className="bg-emerald-50 text-emerald-800 font-semibold">
             <tr>
               <th className="px-6 py-3 text-left">Username</th>
               <th className="px-6 py-3 text-left">Email</th>
@@ -173,32 +104,16 @@ const UserTable: React.FC<Props> = ({ users }) => {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {localUsers.map((user) => (
+            {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-3">{user.username}</td>
                 <td className="px-6 py-3">{user.email}</td>
                 <td className="px-6 py-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                      user.role
-                    )}`}
-                  >
-                    {user.role}
-                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>{user.role}</span>
                 </td>
-                <td className="px-6 py-3 flex gap-4 items-center">
-                  <button
-                    onClick={() => setEditingUser(user)}
-                    className="text-indigo-600 hover:underline flex items-center text-sm"
-                  >
-                    <FiEdit2 className="mr-1" /> Edit
-                  </button>
-                  <button
-                    onClick={() => deleteUser(user.id)}
-                    className="text-red-600 hover:underline flex items-center text-sm"
-                  >
-                    <FiTrash2 className="mr-1" /> Delete
-                  </button>
+                <td className="px-6 py-3 flex gap-2">
+                  <button className="text-indigo-600 hover:underline" onClick={() => setEditingUser(user)}><FiEdit2 className="inline mr-1" />Edit</button>
+                  <button className="text-red-600 hover:underline" onClick={() => handleDeleteUser(user.id)}><FiTrash2 className="inline mr-1" />Delete</button>
                 </td>
               </tr>
             ))}
