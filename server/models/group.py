@@ -22,10 +22,9 @@ class Group(db.Model):
     logo_url = db.Column(db.String(255))
 
     # Relationships
-      admin = db.relationship('User', back_populates='admin_groups')
-      members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
-      contributions = db.relationship('Contribution', back_populates='group', cascade='all, delete-orphan')
-
+    admin = db.relationship('User', back_populates='admin_groups')
+    members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
+    contributions = db.relationship("Contribution", back_populates="group", cascade="all, delete-orphan")
 
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
@@ -53,9 +52,7 @@ class Group(db.Model):
     def calculate_current_amount(self):
         try:
             return float(sum([
-                float(c.amount or 0)
-                for c in self.contributions or []
-                if c.status == 'confirmed'
+                float(c.amount or 0) for c in self.contributions or [] if c.status == 'confirmed'
             ]))
         except Exception as e:
             print(f"❌ Error in calculate_current_amount for group {self.id}: {e}")
@@ -78,7 +75,7 @@ class Group(db.Model):
                 'description': self.description,
                 'created_at': self.created_at.isoformat() if self.created_at else None,
                 'target_amount': float(self.target_amount or 0),
-                'current_amount': float(self.calculate_current_amount()),
+                'current_amount': self.calculate_current_amount(),
                 'is_public': self.is_public,
                 'status': self.status or 'active',
                 'admin_name': self.admin.username if self.admin else 'Unknown',
@@ -87,7 +84,7 @@ class Group(db.Model):
                 'location': self.location,
                 'logo_url': self.logo_url,
                 'progress': round(self.calculate_progress(), 2),
-                'member_count': len(self.members or []),
+                'member_count': len(self.members or [])
             }
         except Exception as e:
             print(f"❌ Error serializing group {self.id}: {e}")
@@ -104,8 +101,5 @@ def after_group_insert(mapper, connection, target):
 
 @event.listens_for(Group, 'before_update')
 def before_group_update(mapper, connection, target):
-    try:
-        if target.status == 'archived' and target.current_amount < target.target_amount:
-            raise ValueError("Cannot archive group before reaching target amount")
-    except Exception as e:
-        print(f"❌ Error in before_group_update for group {target.id}: {e}")
+    if target.status == 'archived' and target.current_amount < target.target_amount:
+        raise ValueError("Cannot archive group before reaching target amount")
