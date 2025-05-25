@@ -3,8 +3,6 @@ import { FiUsers, FiMapPin, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { FaMoneyBillWave } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-// import { Tab } from '@headlessui/react';
-// import classNames from 'classnames';
 import CreateGroupForm from './CreateGroupForm';
 import EditGroupForm from './EditGroupForm';
 import InviteMemberForm from './InviteMemberForm';
@@ -30,12 +28,10 @@ interface Group {
 
 const API_BASE_URL = 'https://chama-savings-app.onrender.com/api/groups';
 
-
 const GroupTable = () => {
   const { user } = useAuth() as { user: User | null };
   const [groups, setGroups] = useState<Group[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  // const [selectedTab, setSelectedTab] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editGroup, setEditGroup] = useState<Group | null>(null);
   const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
@@ -47,14 +43,10 @@ const GroupTable = () => {
       const res = await axios.get(API_BASE_URL, { withCredentials: true });
       const all = res.data;
       if (!user) return;
-
       const filtered =
         user.role === 'admin'
           ? all
-          : all.filter(
-              (g: Group) => g.is_public || g.admin_id === user.id
-            );
-
+          : all.filter((g: Group) => g.is_public || g.admin_id === user.id);
       setGroups(filtered);
     } catch (err) {
       console.error('Failed to fetch groups:', err);
@@ -81,7 +73,6 @@ const GroupTable = () => {
       'ID', 'Name', 'Admin Name', 'Target Amount', 'Current Amount',
       'Status', 'Location', 'Meeting Schedule', 'Progress', 'Members Count'
     ];
-
     const rows = groups.map(group => [
       group.id,
       group.name,
@@ -94,12 +85,7 @@ const GroupTable = () => {
       `${group.progress.toFixed(1)}%`,
       group.member_count
     ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     const encodedUri = encodeURI(`data:text/csv;charset=utf-8,${csvContent}`);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -125,7 +111,6 @@ const GroupTable = () => {
       inactive: 'bg-gray-300 text-gray-700',
       completed: 'bg-blue-100 text-blue-800'
     };
-
     return (
       <span className={`text-sm font-semibold px-2 py-1 rounded-full ${statusClasses[status]}`}>{status}</span>
     );
@@ -133,28 +118,15 @@ const GroupTable = () => {
 
   const renderActionButtons = (group: Group) => {
     if (!user || (user.role !== 'admin' && user.id !== group.admin_id)) return null;
-
     return (
       <div className="flex gap-2">
-        <button
-          className="text-emerald-700 hover:text-emerald-900"
-          onClick={() => setEditGroup(group)}
-          aria-label="Edit group"
-        >
+        <button className="text-emerald-700 hover:text-emerald-900" onClick={() => setEditGroup(group)} aria-label="Edit group">
           <FiEdit2 />
         </button>
-        <button
-          className="text-red-600 hover:text-red-800"
-          onClick={() => handleDelete(group.id)}
-          aria-label="Delete group"
-        >
+        <button className="text-red-600 hover:text-red-800" onClick={() => handleDelete(group.id)} aria-label="Delete group">
           <FiTrash2 />
         </button>
-        <button
-          className="text-blue-600 hover:text-blue-800"
-          onClick={() => setInviteGroupId(group.id)}
-          aria-label="Invite to group"
-        >
+        <button className="text-blue-600 hover:text-blue-800" onClick={() => setInviteGroupId(group.id)} aria-label="Invite to group">
           Invite
         </button>
       </div>
@@ -174,17 +146,11 @@ const GroupTable = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <div className="flex gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="border border-emerald-700 text-emerald-700 px-4 py-2 rounded hover:bg-emerald-50"
-            >
+            <button onClick={handleExportCSV} className="border border-emerald-700 text-emerald-700 px-4 py-2 rounded hover:bg-emerald-50">
               Export CSV
             </button>
             {(user?.role === 'admin' || user?.id) && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800"
-              >
+              <button onClick={() => setShowCreateModal(true)} className="bg-emerald-700 text-white px-4 py-2 rounded hover:bg-emerald-800">
                 + Create Group
               </button>
             )}
@@ -215,14 +181,7 @@ const GroupTable = () => {
                   <td className="py-3 px-4">{(currentPage - 1) * pageSize + index + 1}</td>
                   <td className="py-3 px-4 font-medium flex gap-2 items-center">
                     {group.logo_url && (
-                      <img
-                        src={group.logo_url}
-                        alt={`${group.name} logo`}
-                        className="w-8 h-8 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
+                      <img src={group.logo_url} alt={`${group.name} logo`} className="w-8 h-8 rounded-full object-cover" />
                     )}
                     {group.name}
                   </td>
@@ -236,10 +195,7 @@ const GroupTable = () => {
                   <td className="py-3 px-4">
                     <div className="flex flex-col gap-1">
                       <div className="bg-gray-200 rounded-full h-2 w-36">
-                        <div
-                          className="bg-emerald-700 h-2 rounded-full"
-                          style={{ width: `${Math.min(100, group.progress)}%` }}
-                        />
+                        <div className="bg-emerald-700 h-2 rounded-full" style={{ width: `${Math.min(100, group.progress)}%` }} />
                       </div>
                       <span className="text-xs text-gray-600">
                         {group.progress.toFixed(1)}% ({group.current_amount.toLocaleString()})
@@ -276,47 +232,27 @@ const GroupTable = () => {
 
       {totalPages > 1 && (
         <div className="mt-6 flex justify-center gap-2">
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50"
-          >
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50">
             Previous
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 border rounded ${
-                currentPage === page
-                  ? 'bg-emerald-700 text-white'
-                  : 'border-emerald-700 text-emerald-700'
-              }`}
+              className={`px-3 py-1 border rounded ${currentPage === page ? 'bg-emerald-700 text-white' : 'border-emerald-700 text-emerald-700'}`}
             >
               {page}
             </button>
           ))}
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50"
-          >
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded border-emerald-700 text-emerald-700 disabled:opacity-50">
             Next
           </button>
         </div>
       )}
 
-      {showCreateModal && (
-        <CreateGroupForm onSuccess={fetchGroups} onClose={() => setShowCreateModal(false)} />
-      )}
-
-      {editGroup && (
-        <EditGroupForm group={editGroup} onSuccess={fetchGroups} onClose={() => setEditGroup(null)} />
-      )}
-
-      {inviteGroupId && (
-        <InviteMemberForm groupId={inviteGroupId} onSuccess={fetchGroups} onClose={() => setInviteGroupId(null)} />
-      )}
+      {showCreateModal && <CreateGroupForm onSuccess={fetchGroups} onClose={() => setShowCreateModal(false)} />}
+      {editGroup && <EditGroupForm group={editGroup} onSuccess={fetchGroups} onClose={() => setEditGroup(null)} />}
+      {inviteGroupId && <InviteMemberForm groupId={inviteGroupId} onSuccess={fetchGroups} onClose={() => setInviteGroupId(null)} />}
     </div>
   );
 };
