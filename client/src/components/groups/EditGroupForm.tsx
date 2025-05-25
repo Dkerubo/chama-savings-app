@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface Group {
   id: number;
@@ -31,20 +32,20 @@ const EditGroupForm = ({ group, onSuccess, onClose }: Props) => {
     is_public: group.is_public,
   });
 
-const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-) => {
-  const { name, value, type } = e.target;
-  const newValue =
-    type === 'checkbox' && 'checked' in e.target
-      ? (e.target as HTMLInputElement).checked
-      : value;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const newValue =
+      type === 'checkbox' && 'checked' in e.target
+        ? (e.target as HTMLInputElement).checked
+        : value;
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: newValue,
-  }));
-};
+    setFormData((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +58,12 @@ const handleChange = (
         },
         { withCredentials: true }
       );
+      toast.success('Group updated successfully!');
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Update failed:', err);
+      toast.error(err.response?.data?.error || 'Failed to update group.');
     }
   };
 
