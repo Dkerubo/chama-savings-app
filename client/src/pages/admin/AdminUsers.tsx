@@ -6,14 +6,17 @@ import UserTable from '../../components/shared/UserTable';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getUsers(1, 100);
-        setUsers(data.users);
+        const response = await getUsers(); // No pagination
+        setUsers(response.users);
       } catch (err) {
-        console.error('Failed to fetch users');
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -22,8 +25,12 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">User List</h1>
-      <UserTable users={users} setUsers={setUsers} />
+      <h1 className="text-2xl font-bold mb-4 text-emerald-800">User Management</h1>
+      {loading ? (
+        <p className="text-gray-600">Loading users...</p>
+      ) : (
+        <UserTable users={users} setUsers={setUsers} />
+      )}
     </div>
   );
 };
