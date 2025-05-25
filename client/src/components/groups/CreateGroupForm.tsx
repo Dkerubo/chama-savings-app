@@ -62,7 +62,7 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
     };
 
     try {
-      const res = await axios.post('http://localhost:5000/api/groups/', payload, {
+      const res = await axios.post('https://chama-savings-app.onrender.com/api/groups/', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
