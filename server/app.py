@@ -13,7 +13,7 @@ from server.routes.contribution_routes import contribution_bp
 # Load environment variables from .env
 load_dotenv()
 
-# Create the Flask app
+# === Create Flask App Factory ===
 def create_app():
     app = Flask(__name__)
 
@@ -25,7 +25,7 @@ def create_app():
     app.config['JWT_TOKEN_LOCATION'] = ['headers']
     app.config['CORS_SUPPORTS_CREDENTIALS'] = True
 
-    # === CORS Fix ===
+    # === CORS Setup ===
     frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://chama-savings-app-1.onrender.com")
     CORS(app, resources={r"/api/*": {"origins": frontend_origin}}, supports_credentials=True)
 
@@ -42,13 +42,16 @@ def create_app():
     app.register_blueprint(member_bp, url_prefix='/api/members')
     app.register_blueprint(contribution_bp, url_prefix='/api/contributions')
 
-    # === Root test route ===
+    # === Root Test Route ===
     @app.route('/')
     def home():
         return jsonify({"message": "✅ Welcome to the Chama API"})
 
     return app
 
+# === Run the app only in development ===
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True, port=int(os.getenv("PORT", 5000)))
+    port = int(os.environ.get('PORT', 10000))  # Render uses PORT env variable
+    app.run(host='0.0.0.0', port=port, debug=True)
+
