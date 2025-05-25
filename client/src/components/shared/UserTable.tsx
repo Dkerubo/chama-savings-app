@@ -57,7 +57,7 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeColor = (role: 'admin' | 'member') => {
     return role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
   };
 
@@ -69,7 +69,7 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
           <input type="text" placeholder="Username" className="border rounded p-2" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
           <input type="email" placeholder="Email" className="border rounded p-2" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
           <input type="password" placeholder="Password" className="border rounded p-2" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
-          <select className="border rounded p-2" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
+          <select className="border rounded p-2" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'member' })}>
             <option value="member">Member</option>
             <option value="admin">Admin</option>
           </select>
@@ -83,7 +83,7 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <input type="text" className="border rounded p-2" value={editingUser.username} onChange={e => setEditingUser({ ...editingUser, username: e.target.value })} />
             <input type="email" className="border rounded p-2" value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} />
-            <select className="border rounded p-2" value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value })}>
+            <select className="border rounded p-2" value={editingUser.role} onChange={e => setEditingUser({ ...editingUser, role: e.target.value as 'admin' | 'member' })}>
               <option value="member">Member</option>
               <option value="admin">Admin</option>
             </select>
@@ -109,7 +109,7 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
                 <td className="px-6 py-3">{user.username}</td>
                 <td className="px-6 py-3">{user.email}</td>
                 <td className="px-6 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>{user.role}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role as 'admin' | 'member')}`}>{user.role}</span>
                 </td>
                 <td className="px-6 py-3 flex gap-2">
                   <button className="text-indigo-600 hover:underline" onClick={() => setEditingUser(user)}><FiEdit2 className="inline mr-1" />Edit</button>
