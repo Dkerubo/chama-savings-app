@@ -4,6 +4,7 @@ from sqlalchemy import event, func
 from sqlalchemy.orm import validates
 from server.extensions import db
 
+
 class Group(db.Model):
     __tablename__ = 'groups'
 
@@ -49,32 +50,43 @@ class Group(db.Model):
             raise ValueError('Invalid target amount')
 
     def calculate_current_amount(self):
-        # Example: sum all confirmed contributions (you may change the logic based on your schema)
-        return sum([c.amount for c in self.contributions if c.status == 'confirmed'])
+        try:
+            return float(sum([(c.amount or 0) for c in self.contributions if c.status == 'confirmed']))
+        except Exception as e:
+            print(f"❌ Error in calculate_current_amount for group {self.id}: {e}")
+            return 0.0
 
     def calculate_progress(self):
-        if self.target_amount <= 0:
+        try:
+            if self.target_amount and self.target_amount > 0:
+                return float(self.calculate_current_amount() / self.target_amount * 100)
             return 0.0
-        return float((self.calculate_current_amount() / self.target_amount) * 100)
+        except Exception as e:
+            print(f"❌ Error in calculate_progress for group {self.id}: {e}")
+            return 0.0
 
-def serialize(self):
-    return {
-        'id': self.id,
-        'name': self.name,
-        'description': self.description,
-        'created_at': self.created_at.isoformat() if self.created_at else None,
-        'target_amount': float(self.target_amount or 0),
-        'current_amount': float(self.calculate_current_amount()),
-        'is_public': self.is_public,
-        'status': self.status or 'active',
-        'admin_name': self.admin.username if self.admin else 'Unknown',
-        'admin_id': self.admin_id,
-        'meeting_schedule': self.meeting_schedule,
-        'location': self.location,
-        'logo_url': self.logo_url,
-        'progress': round(self.calculate_progress(), 2),
-        'member_count': len(self.members) if self.members else 0,
-    }
+    def serialize(self):
+        try:
+            return {
+                'id': self.id,
+                'name': self.name,
+                'description': self.description,
+                'created_at': self.created_at.isoformat() if self.created_at else None,
+                'target_amount': float(self.target_amount or 0),
+                'current_amount': float(self.calculate_current_amount()),
+                'is_public': self.is_public,
+                'status': self.status or 'active',
+                'admin_name': self.admin.username if self.admin else 'Unknown',
+                'admin_id': self.admin_id,
+                'meeting_schedule': self.meeting_schedule,
+                'location': self.location,
+                'logo_url': self.logo_url,
+                'progress': round(self.calculate_progress(), 2),
+                'member_count': len(self.members) if self.members else 0,
+            }
+        except Exception as e:
+            print(f"❌ Error serializing group {self.id}: {e}")
+            return {'error': f'Failed to serialize group {self.id}'}
 
     def __repr__(self):
         return f'<Group {self.name} (ID: {self.id})>'
@@ -83,6 +95,7 @@ def serialize(self):
 @event.listens_for(Group, 'after_insert')
 def after_group_insert(mapper, connection, target):
     print(f"✅ New group created: {target.name} (ID: {target.id})")
+
 
 @event.listens_for(Group, 'before_update')
 def before_group_update(mapper, connection, target):
