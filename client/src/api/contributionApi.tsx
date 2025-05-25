@@ -2,7 +2,7 @@
 import axios, { AxiosError } from 'axios';
 import { Contribution } from '../types/Contribution';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://chama-savings-app.onrender.com/api';
 
 // Create configured axios instance
 const api = axios.create({
