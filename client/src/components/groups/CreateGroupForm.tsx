@@ -1,3 +1,4 @@
+// src/components/groups/CreateGroupForm.tsx
 import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -39,22 +40,15 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!user || !token) {
-      toast.error('You must be logged in to create a group.');
-      return;
-    }
-
-    const target = parseFloat(formData.target_amount);
-    if (isNaN(target) || target <= 0) {
-      toast.error('Please enter a valid target amount.');
+      toast.error('Login required to create group.');
       return;
     }
 
     const payload = {
       name: formData.name.trim(),
       description: formData.description.trim() || null,
-      target_amount: target,
+      target_amount: parseFloat(formData.target_amount),
       meeting_schedule: formData.meeting_schedule.trim() || null,
       location: formData.location.trim() || null,
       logo_url: formData.logo_url.trim() || null,
@@ -62,27 +56,28 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
     };
 
     try {
-      const res = await axios.post('https://chama-savings-app.onrender.com/api/groups/', payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const res = await axios.post(
+        'https://chama-savings-app.onrender.com/api/groups/',
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true,
+        }
+      );
 
       if (res.status === 201) {
         toast.success('Group created successfully!');
         onSuccess();
         onClose();
       } else {
-        toast.error('Unexpected server response. Try again.');
+        toast.error('Unexpected server response.');
       }
     } catch (err: any) {
-      console.error('Create group failed:', err.response?.data || err.message);
-      toast.error(
-        err.response?.data?.error ||
-          'Failed to create group. Please check your input and try again.'
-      );
+      console.error('Group creation failed:', err);
+      toast.error(err.response?.data?.error || 'Failed to create group.');
     }
   };
 
@@ -98,8 +93,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="e.g. Umoja Savings"
               required
+              placeholder="e.g. Umoja Savings"
               className="w-full border px-3 py-2 rounded"
             />
           </div>
@@ -110,8 +105,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="What is this group about?"
               className="w-full border px-3 py-2 rounded"
+              placeholder="Brief description"
             />
           </div>
 
@@ -122,8 +117,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="target_amount"
               value={formData.target_amount}
               onChange={handleChange}
-              placeholder="e.g. 50000"
               required
+              placeholder="e.g. 50000"
               className="w-full border px-3 py-2 rounded"
             />
           </div>
@@ -135,8 +130,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="meeting_schedule"
               value={formData.meeting_schedule}
               onChange={handleChange}
-              placeholder="e.g. Every first Saturday"
               className="w-full border px-3 py-2 rounded"
+              placeholder="e.g. Every Saturday"
             />
           </div>
 
@@ -147,8 +142,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="location"
               value={formData.location}
               onChange={handleChange}
-              placeholder="e.g. Nairobi, Kenya"
               className="w-full border px-3 py-2 rounded"
+              placeholder="e.g. Nairobi, Kenya"
             />
           </div>
 
@@ -159,8 +154,8 @@ const CreateGroupForm: React.FC<Props> = ({ onSuccess, onClose }) => {
               name="logo_url"
               value={formData.logo_url}
               onChange={handleChange}
-              placeholder="e.g. https://example.com/logo.png"
               className="w-full border px-3 py-2 rounded"
+              placeholder="https://example.com/logo.png"
             />
           </div>
 
