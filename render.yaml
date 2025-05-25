@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: chama-backend
+    env: python3
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn 'server.app:create_app()'
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: server.app:create_app
+      - key: DATABASE_URL
+        value: postgresql://chama_db_3ggy_user:pxhx8rNgScT9qLvmw9sVqYVKLWu38fSG@dpg-d0l2247fte5s7394s7d0-a.oregon-postgres.render.com/chama_db_3ggy
+      - key: SECRET_KEY
+        value: your-secret-key
+      - key: JWT_SECRET_KEY
+        value: your-jwt-secret-key
+      - key: FRONTEND_ORIGIN
+        value: https://chama-savings-app-1.onrender.com
+
+    migrations:
+      runOnDeploy: true
+      commands:
+        - flask db upgrade
