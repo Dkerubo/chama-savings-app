@@ -10,7 +10,7 @@ group_bp = Blueprint('group', __name__, url_prefix='/api/groups')
 # ─────────────────────────────
 # GET all groups
 # ─────────────────────────────
-@group_bp.route('/', methods=['GET'])  # already correct
+@group_bp.route('/', methods=['GET'])
 def get_all_groups():
     try:
         groups = Group.query.all()
@@ -18,6 +18,7 @@ def get_all_groups():
     except Exception as e:
         print("❌ Error fetching groups:", repr(e))
         return jsonify({'error': 'Failed to retrieve groups'}), 500
+
 
 # ─────────────────────────────
 # GET a single group by ID
@@ -45,13 +46,21 @@ def create_group():
         return jsonify({'error': 'Name and target amount are required.'}), 400
 
     try:
+        target_amount = Decimal(str(data['target_amount']))
+        if target_amount <= 0:
+            raise ValueError("Target amount must be greater than 0")
+    except Exception as e:
+        print("❌ Invalid target_amount:", e)
+        return jsonify({'error': 'Invalid target amount'}), 400
+
+    try:
         group = Group(
             name=data['name'].strip(),
             description=data.get('description'),
-            target_amount=Decimal(str(data['target_amount'])),
+            target_amount=target_amount,
             meeting_schedule=data.get('meeting_schedule'),
             location=data.get('location'),
-            is_public=data.get('is_public', False),
+            is_public=data.get('is_public', True),
             logo_url=data.get('logo_url'),
             admin_id=current_user_id
         )
@@ -61,7 +70,7 @@ def create_group():
 
     except Exception as e:
         db.session.rollback()
-        print("❌ Error creating group:", repr(e))
+        print("❌ Error creating group:", e)
         return jsonify({'error': 'Failed to create group'}), 500
 
 
@@ -86,6 +95,8 @@ def update_group(id):
         if 'target_amount' in data:
             try:
                 group.target_amount = Decimal(str(data['target_amount']))
+                if group.target_amount <= 0:
+                    raise ValueError("Target amount must be positive")
             except Exception:
                 return jsonify({'error': 'Invalid target amount'}), 400
 
