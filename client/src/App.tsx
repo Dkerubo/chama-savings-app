@@ -27,6 +27,8 @@ const MemberLayout = lazy(() => import("./layouts/MemberLayout"));
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const CreateGroup = lazy(() => import("./pages/admin/Groups"));
+const Contributions = lazy(() => import("./pages/admin/Contributions"));
 
 // Member Pages
 const MemberDashboard = lazy(() => import("./pages/member/Dashboard"));
