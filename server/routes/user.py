@@ -3,12 +3,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from server.extensions import db
 from server.models.user import User
 
-user_bp = Blueprint('user', __name__)
+user_bp = Blueprint('user', __name__, url_prefix='/api/users')
 
-# ------------------------------------
-# Authenticated User Endpoints (/me)
-# ------------------------------------
-
+# ========== Current Authenticated User ==========
 @user_bp.route('/me', methods=['GET', 'PUT', 'DELETE'])
 @jwt_required()
 def handle_current_user():
@@ -30,11 +27,7 @@ def handle_current_user():
         db.session.commit()
         return jsonify({'message': 'User deleted successfully'}), 200
 
-
-# ------------------------------------
-# Admin User Management Endpoints
-# ------------------------------------
-
+# ========== Admin View All Users ==========
 @user_bp.route('/', methods=['GET'])
 def get_all_users():
     try:
@@ -43,7 +36,7 @@ def get_all_users():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
+# ========== Admin Get One User ==========
 @user_bp.route('/<int:id>', methods=['GET'])
 def get_user(id):
     try:
@@ -52,7 +45,7 @@ def get_user(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
+# ========== Admin Create User ==========
 @user_bp.route('/', methods=['POST'])
 def create_user():
     try:
@@ -61,7 +54,8 @@ def create_user():
             username=data['username'],
             email=data['email'],
             password=data['password'],
-            role=data.get('role', 'member')
+            role=data.get('role', 'member'),
+            phone_number=data.get('phone_number')
         )
         db.session.add(user)
         db.session.commit()
@@ -70,7 +64,7 @@ def create_user():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-
+# ========== Admin Update User ==========
 @user_bp.route('/<int:id>', methods=['PUT'])
 def update_user(id):
     try:
@@ -79,13 +73,14 @@ def update_user(id):
         user.username = data.get('username', user.username)
         user.email = data.get('email', user.email)
         user.role = data.get('role', user.role)
+        user.phone_number = data.get('phone_number', user.phone_number)
         db.session.commit()
         return jsonify(user.serialize()), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-
+# ========== Admin Delete User ==========
 @user_bp.route('/<int:id>', methods=['DELETE'])
 def delete_user(id):
     try:
