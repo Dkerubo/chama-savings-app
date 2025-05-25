@@ -30,6 +30,7 @@ interface Group {
 
 const API_BASE_URL = 'https://chama-savings-app.onrender.com/api/groups';
 
+
 const GroupTable = () => {
   const { user } = useAuth() as { user: User | null };
   const [groups, setGroups] = useState<Group[]>([]);
