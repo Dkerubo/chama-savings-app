@@ -50,7 +50,7 @@ const GroupTable = () => {
 
       const filtered = user.role === 'admin'
         ? all
-        : all.filter((g: Group) => g.is_public || g.admin_id === user.id);
+        : all.filter((g: Group) => g.is_public || g.admin_id === Number(user.id));
 
       setGroups(filtered);
     } catch (err) {
@@ -127,7 +127,7 @@ const GroupTable = () => {
   };
 
   const renderActionButtons = (group: Group) => {
-    if (!user || (user.role !== 'admin' && user.id !== group.admin_id)) return null;
+    if (!user || (user.role !== 'admin' && Number(user.id) !== group.admin_id)) return null;
     return (
       <div className="flex gap-2">
         <button className="text-emerald-700 hover:text-emerald-900" onClick={() => setEditGroup(group)} aria-label="Edit group">
@@ -208,7 +208,7 @@ const GroupTable = () => {
                         <div className="bg-emerald-700 h-2 rounded-full" style={{ width: `${Math.min(100, group.progress)}%` }} />
                       </div>
                       <span className="text-xs text-gray-600">
-                        {group.progress.toFixed(1)}% ({group.current_amount.toLocaleString()})
+                        {group.progress.toFixed(1)}% ({Number(group.current_amount).toLocaleString()})
                       </span>
                     </div>
                   </td>
