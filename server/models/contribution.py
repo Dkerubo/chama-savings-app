@@ -19,14 +19,14 @@ class Contribution(db.Model):
     member = db.relationship('Member', back_populates='contributions')
     group = db.relationship('Group', back_populates='contributions')
 
-   def __init__(self, member_id, group_id, amount, note=None, receipt_number=None, status='pending', created_at=None):
-    self.member_id = member_id
-    self.group_id = group_id
-    self.amount = amount
-    self.note = note
-    self.status = status
-    self.receipt_number = receipt_number
-    self.created_at = created_at or datetime.utcnow()  # Allow seed.py to override
+    def __init__(self, member_id, group_id, amount, note=None, receipt_number=None, status='pending', created_at=None):
+        self.member_id = member_id
+        self.group_id = group_id
+        self.amount = amount
+        self.note = note
+        self.status = status
+        self.receipt_number = receipt_number
+        self.created_at = created_at or datetime.utcnow()
 
     @validates('status')
     def validate_status(self, key, status):
