@@ -28,8 +28,8 @@ const MemberLayout = lazy(() => import("./layouts/MemberLayout"));
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const CreateGroupPage = lazy(() => import("./pages/groups/CreateGroupPage")); // ✅ Fixed import
-const ContributionsPage = lazy(() => import("./pages/member/Contributions")); // ✅ Renamed to match export
+const CreateGroupPage = lazy(() => import("./pages/admin/CreateGroupPage")); 
+const ContributionsPage = lazy(() => import("./pages/admin/Contributions"));
 
 // Member Pages
 const MemberDashboard = lazy(() => import("./pages/member/Dashboard"));
