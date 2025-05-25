@@ -83,13 +83,11 @@ const Register: React.FC = () => {
     try {
       const { confirm_password, ...formData } = form;
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(formData),
-});
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -119,10 +117,12 @@ const Register: React.FC = () => {
       localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      navigate(
-        user.role === 'superadmin' ? '/admin/AdminDashboard' : '/member/Dashboard',
-        { state: { registrationSuccess: true }, replace: true }
-      );
+      if (user.role === 'superadmin' || user.role === 'admin') {
+        navigate('/admin/dashboard', { state: { registrationSuccess: true }, replace: true });
+      } else {
+        navigate('/member/dashboard', { state: { registrationSuccess: true }, replace: true });
+      }
+
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Registration failed.', { id: toastId });
