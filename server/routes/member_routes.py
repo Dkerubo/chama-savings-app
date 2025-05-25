@@ -3,7 +3,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from server.extensions import db
 from server.models.member import Member
 from server.models.contribution import Contribution
-from server.models.loan import Loan
 from sqlalchemy import or_
 
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
