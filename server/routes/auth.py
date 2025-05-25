@@ -10,38 +10,36 @@ from server.extensions import db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-
-# ========== Register ==========
+# ====== Register ======
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    required = ['username', 'email', 'password']
-    missing = [field for field in required if not data.get(field)]
-
-    if missing:
-        return jsonify({"error": "Missing fields", "missing": missing}), 400
-
     try:
-        # Create new user
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        required = ['username', 'email', 'password']
+        missing = [field for field in required if not data.get(field)]
+        if missing:
+            return jsonify({"error": "Missing fields", "missing": missing}), 400
+
+        # Create user
         user = User(
             username=data['username'],
             email=data['email'],
-            password=data['password'],
+            password=data['password'],  # Assumes password is hashed in the model
             phone_number=data.get('phone_number'),
             role=data.get('role', 'member')
         )
         db.session.add(user)
         db.session.commit()
 
-        # Auto-login after registration
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-
+        # Generate tokens
         access_token = create_access_token(identity=user.serialize())
         refresh_token = create_refresh_token(identity=user.serialize())
 
         return jsonify({
-            "message": "Registration and login successful",
+            "message": "Registration successful",
             "user": user.serialize(),
             "access_token": access_token,
             "refresh_token": refresh_token
@@ -50,12 +48,14 @@ def register():
     except IntegrityError:
         db.session.rollback()
         return jsonify({"error": "Username or email already exists"}), 409
+
     except Exception as e:
         db.session.rollback()
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Registration failed", "details": str(e)}), 500
 
-
-# ========== Login ==========
+# ====== Login ======
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
@@ -90,42 +90,32 @@ def login():
         }), 200
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Login failed", "details": str(e)}), 500
 
-
-# ========== Refresh ==========
+# ====== Refresh ======
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    try:
-        current_user = get_jwt_identity()
-        new_token = create_access_token(identity=current_user)
-        return jsonify({"access_token": new_token}), 200
-    except Exception as e:
-        return jsonify({"error": "Token refresh failed", "details": str(e)}), 500
+    current_user = get_jwt_identity()
+    new_token = create_access_token(identity=current_user)
+    return jsonify({"access_token": new_token}), 200
 
-
-# ========== Logout ==========
+# ====== Logout ======
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    try:
-        response = jsonify({"message": "Logout successful"})
-        unset_jwt_cookies(response)
-        return response, 200
-    except Exception as e:
-        return jsonify({"error": "Logout failed", "details": str(e)}), 500
+    response = jsonify({"message": "Logout successful"})
+    unset_jwt_cookies(response)
+    return response, 200
 
-
-# ========== Get Current User ==========
+# ====== Get Current User ======
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def me():
-    try:
-        current_user = get_jwt_identity()
-        user = User.query.get(current_user['id'])
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        return jsonify(user.serialize()), 200
-    except Exception as e:
-        return jsonify({"error": "Failed to fetch user", "details": str(e)}), 500
+    current_identity = get_jwt_identity()
+    user = User.query.get(current_identity['id'])
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify(user.serialize()), 200
