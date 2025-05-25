@@ -64,14 +64,14 @@ const Login: React.FC = () => {
       });
 
       const { access_token, user } = response.data;
-      login(access_token, user); // Use the auth context login function
+      login(access_token, user); // Set context and localStorage
 
-      if (user.role === 'superadmin') {
-        navigate('/admin/AdminDashboard', { replace: true });
+      if (user.role === 'superadmin' || user.role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/member/Dashboard', { replace: true });
+        navigate('/member/dashboard', { replace: true });
       }
-    } catch (err) {
+    } catch {
       setErrors({ form: 'Invalid credentials' });
       setCredentials((prev) => ({ ...prev, password: '' }));
     } finally {
@@ -150,11 +150,7 @@ const Login: React.FC = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? (
-                  <EyeOffIcon />
-                ) : (
-                  <EyeIcon />
-                )}
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
             {errors.password && (
@@ -165,14 +161,11 @@ const Login: React.FC = () => {
           <div className="flex items-center justify-between">
             <label className="flex items-center text-sm text-gray-700">
               <input
-                id="remember-me"
-                name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                className="h-4 w-4 text-emerald-600 border-gray-300 rounded"
               />
               <span className="ml-2">Remember me</span>
             </label>
-
             <a href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-500">
               Forgot password?
             </a>
@@ -187,11 +180,7 @@ const Login: React.FC = () => {
                 : 'bg-emerald-600 hover:bg-emerald-700'
             } text-white font-medium`}
           >
-            {isLoading ? (
-              <LoadingSpinner />
-            ) : (
-              'Sign in'
-            )}
+            {isLoading ? <LoadingSpinner /> : 'Sign in'}
           </button>
         </form>
 
@@ -219,19 +208,16 @@ const Login: React.FC = () => {
   );
 };
 
-// Helper components (keep the same as in your original)
+// Helper components
 const LoadingSpinner = () => (
-  <>
-    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      ></path>
-    </svg>
-    Logging in...
-  </>
+  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
 );
 
 const EyeIcon = () => (
