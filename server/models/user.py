@@ -18,21 +18,15 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     phone_number = db.Column(db.String(20))
     profile_picture = db.Column(db.String(255))
-   
 
-    
-    # New verification & reset fields
     is_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(255), nullable=True)
     reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
-    # Relationships
-    # notifications = db.relationship('Notification', back_populates='user', cascade='all, delete-orphan')
     admin_groups = db.relationship('Group', back_populates='admin', cascade='all, delete-orphan')
-    # verified_loans = db.relationship('Loan', foreign_keys='Loan.approved_by', back_populates='approver')
     members = db.relationship('Member', back_populates='user', cascade='all, delete-orphan')
-    
+
     def __init__(self, username=None, email=None, password=None, **kwargs):
         if username:
             self.set_username(username)
@@ -40,55 +34,32 @@ class User(db.Model):
             self.set_email(email)
         if password:
             self.set_password(password)
-        if 'role' not in kwargs:
-            kwargs['role'] = 'member'
         for key, value in kwargs.items():
             setattr(self, key, value)
+        if not self.role:
+            self.role = 'member'
 
     def set_username(self, username):
         if not username:
-            raise ValueError('Username cannot be empty')
+            raise ValueError('Username is required')
         if not re.match(r'^[a-zA-Z0-9_]{3,20}$', username):
-            raise ValueError('Username must be 3-20 characters (letters, numbers, underscores)')
-        if User.query.filter_by(username=username).first():
-            raise ValueError('Username already exists')
+            raise ValueError('Username must be 3-20 characters and can include underscores')
         self.username = username
 
     def set_email(self, email):
         if not email:
-            raise ValueError('Email cannot be empty')
+            raise ValueError('Email is required')
         if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
             raise ValueError('Invalid email format')
-        if User.query.filter_by(email=email.lower()).first():
-            raise ValueError('Email already registered')
         self.email = email.lower()
 
-    def set_role(self, role):
-        valid_roles = ['member', 'admin', 'superadmin']
-        if role not in valid_roles:
-            raise ValueError(f"Role must be one of: {', '.join(valid_roles)}")
-        self.role = role
-
     def set_password(self, password):
-        if not password:
-            raise ValueError('Password cannot be empty')
-        if len(password) < 8:
-            raise ValueError('Password must be at least 8 characters')
+        if not password or len(password) < 8:
+            raise ValueError('Password must be at least 8 characters long')
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-    def get_token(self, additional_claims=None):
-        claims = {
-            'id': self.id,
-            'username': self.username,
-            'role': self.role,
-            'email': self.email
-        }
-        if additional_claims:
-            claims.update(additional_claims)
-        return create_access_token(identity=claims)
 
     def serialize(self, include_sensitive=False):
         data = {
@@ -103,30 +74,23 @@ class User(db.Model):
             'profile_picture': self.profile_picture
         }
         if include_sensitive:
-            data['phone_number'] = self.phone_number
-            data['verification_token'] = self.verification_token
-            data['reset_token'] = self.reset_token
-            data['reset_token_expiry'] = (
-                self.reset_token_expiry.isoformat() if self.reset_token_expiry else None
-            )
+            data.update({
+                'phone_number': self.phone_number,
+                'verification_token': self.verification_token,
+                'reset_token': self.reset_token,
+                'reset_token_expiry': (
+                    self.reset_token_expiry.isoformat() if self.reset_token_expiry else None
+                )
+            })
         return data
 
     def update_last_login(self):
         self.last_login = datetime.utcnow()
         db.session.commit()
 
-    def has_group_permission(self, group_id, required_role='admin'):
-        if self.role == 'superadmin':
-            return True
-        return any(
-            m for m in self.members
-            if m.group_id == group_id and (m.is_admin or m.status == required_role)
-        )
-
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
 
-# Event listeners
 @event.listens_for(User, 'before_insert')
 @event.listens_for(User, 'before_update')
 def validate_user(mapper, connection, target):
@@ -139,4 +103,4 @@ def validate_user(mapper, connection, target):
 
 @event.listens_for(User, 'after_insert')
 def send_welcome_notification(mapper, connection, target):
-    print(f"New user registered: {target.username}")
+    print(f"🎉 New user registered: {target.username}")
