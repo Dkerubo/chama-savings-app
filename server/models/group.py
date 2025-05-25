@@ -51,7 +51,11 @@ class Group(db.Model):
 
     def calculate_current_amount(self):
         try:
-            return float(sum([(c.amount or 0) for c in self.contributions if c.status == 'confirmed']))
+            return float(sum([
+                float(c.amount or 0)
+                for c in self.contributions or []
+                if c.status == 'confirmed'
+            ]))
         except Exception as e:
             print(f"❌ Error in calculate_current_amount for group {self.id}: {e}")
             return 0.0
@@ -82,7 +86,7 @@ class Group(db.Model):
                 'location': self.location,
                 'logo_url': self.logo_url,
                 'progress': round(self.calculate_progress(), 2),
-                'member_count': len(self.members) if self.members else 0,
+                'member_count': len(self.members or []),
             }
         except Exception as e:
             print(f"❌ Error serializing group {self.id}: {e}")
@@ -99,5 +103,8 @@ def after_group_insert(mapper, connection, target):
 
 @event.listens_for(Group, 'before_update')
 def before_group_update(mapper, connection, target):
-    if target.status == 'archived' and target.current_amount < target.target_amount:
-        raise ValueError("Cannot archive group before reaching target amount")
+    try:
+        if target.status == 'archived' and target.current_amount < target.target_amount:
+            raise ValueError("Cannot archive group before reaching target amount")
+    except Exception as e:
+        print(f"❌ Error in before_group_update for group {target.id}: {e}")
