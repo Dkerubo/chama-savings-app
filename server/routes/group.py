@@ -10,7 +10,7 @@ group_bp = Blueprint('group', __name__, url_prefix='/api/groups')
 # ─────────────────────────────
 # GET all groups
 # ─────────────────────────────
-@group_bp.route('/', methods=['GET'])
+@group_bp.route('/', methods=['GET'])  # already correct
 def get_all_groups():
     try:
         groups = Group.query.all()
@@ -18,7 +18,6 @@ def get_all_groups():
     except Exception as e:
         print("❌ Error fetching groups:", repr(e))
         return jsonify({'error': 'Failed to retrieve groups'}), 500
-
 
 # ─────────────────────────────
 # GET a single group by ID
