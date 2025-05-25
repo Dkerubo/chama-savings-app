@@ -1,8 +1,8 @@
 // src/components/shared/UserTable.tsx
 import React, { useEffect, useState } from 'react';
-import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { User } from '../../types';
-import { createUser, updateUser, deleteUser as apiDeleteUser } from '../../api/userApi';
+import { updateUser, deleteUser as apiDeleteUser } from '../../api/userApi';
 
 interface Props {
   users: User[];
@@ -11,31 +11,10 @@ interface Props {
 
 const UserTable: React.FC<Props> = ({ users, setUsers }) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState<User & { password: string }>({
-    id: '',
-    username: '',
-    email: '',
-    role: 'member',
-    password: '',
-  });
 
   useEffect(() => {
     setUsers(users);
   }, [users]);
-
-  const handleAddUser = async () => {
-    if (!newUser.username || !newUser.email || !newUser.password) {
-      alert('Please fill all fields including password');
-      return;
-    }
-    try {
-      const created = await createUser(newUser);
-      setUsers([...users, created]);
-      setNewUser({ id: '', username: '', email: '', role: 'member', password: '' });
-    } catch (err) {
-      alert('Failed to create user');
-    }
-  };
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
@@ -63,20 +42,6 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-4 rounded shadow border">
-        <h3 className="text-lg font-semibold">Add New User</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <input type="text" placeholder="Username" className="border rounded p-2" value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} />
-          <input type="email" placeholder="Email" className="border rounded p-2" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} />
-          <input type="password" placeholder="Password" className="border rounded p-2" value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} />
-          <select className="border rounded p-2" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'member' })}>
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button className="bg-emerald-700 text-white px-4 py-2 rounded" onClick={handleAddUser}><FiPlus /> Add</button>
-        </div>
-      </div>
-
       {editingUser && (
         <div className="bg-white p-4 rounded shadow border">
           <h3 className="text-lg font-semibold">Edit User</h3>
