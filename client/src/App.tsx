@@ -24,6 +24,7 @@ import Unauthorized from "./pages/Unauthorized"; // Make sure this page exists
 import AdminLayout from "./layouts/AdminLayout";
 import MemberLayout from "./layouts/MemberLayout";
 
+import { lazy, Suspense } from 'react';
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -44,6 +45,7 @@ function App() {
             <div className="flex flex-col min-h-screen w-full">
               <Navbar />
               <main className="flex-grow">
+                <Suspense fallback={<div className="text-center p-4">Loading...</div>}>
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/" element={<Home />} />
@@ -87,6 +89,7 @@ function App() {
                   {/* Fallback */}
                   <Route path="*" element={<Home />} />
                 </Routes>
+                  </Suspense>
               </main>
               <Footer />
             </div>
