@@ -22,9 +22,10 @@ class Group(db.Model):
     logo_url = db.Column(db.String(255))
 
     # Relationships
-    admin = db.relationship('User', back_populates='admin_groups')
-    members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
-    contributions = db.relationship("Contribution", back_populates="group", cascade="all, delete-orphan")
+      admin = db.relationship('User', back_populates='admin_groups')
+      members = db.relationship('Member', back_populates='group', cascade='all, delete-orphan')
+      contributions = db.relationship('Contribution', back_populates='group', cascade='all, delete-orphan')
+
 
     def __init__(self, name, admin_id, target_amount, **kwargs):
         self.name = name
