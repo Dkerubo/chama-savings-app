@@ -1,8 +1,7 @@
 from datetime import datetime
 from server.extensions import db
 from sqlalchemy import event
-from sqlalchemy.orm import validates
-from sqlalchemy.orm.session import object_session
+from sqlalchemy.orm import validates, object_session
 
 class Contribution(db.Model):
     __tablename__ = 'contributions'
@@ -19,21 +18,22 @@ class Contribution(db.Model):
     # Relationships
     member = db.relationship('Member', back_populates='contributions')
     group = db.relationship('Group', back_populates='contributions')
-   
+
+    def __init__(self, member_id, group_id, amount, note=None, receipt_number=None, status='pending', created_at=None):
+        self.member_id = member_id
+        self.group_id = group_id
+        self.amount = amount
+        self.note = note
+        self.status = status
+        self.receipt_number = receipt_number
+        self.created_at = created_at or datetime.utcnow()  # Allow seed.py to override
+
     @validates('status')
     def validate_status(self, key, status):
         valid_statuses = ['pending', 'confirmed', 'rejected']
         if status not in valid_statuses:
             raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
         return status
-
-    def __init__(self, member_id, group_id, amount, note=None, receipt_number=None, status='pending'):
-        self.member_id = member_id
-        self.group_id = group_id
-        self.amount = amount
-        self.receipt_number = receipt_number
-        self.note = note
-        self.status = status
 
     def serialize(self):
         return {
@@ -46,8 +46,6 @@ class Contribution(db.Model):
             'status': self.status,
             'receipt_number': self.receipt_number,
             'member_name': self.member.user.username if self.member and self.member.user else None
-            
-            
         }
 
     def confirm(self):
