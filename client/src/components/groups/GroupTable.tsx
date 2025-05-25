@@ -44,11 +44,21 @@ const GroupTable = () => {
   const fetchGroups = useCallback(async () => {
     try {
       const res = await axios.get(API_BASE_URL, { withCredentials: true });
-      setGroups(res.data);
+      const all = res.data;
+      if (!user) return;
+
+      const filtered =
+        user.role === 'admin'
+          ? all
+          : all.filter(
+              (g: Group) => g.is_public || g.admin_id === user.id
+            );
+
+      setGroups(filtered);
     } catch (err) {
       console.error('Failed to fetch groups:', err);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchGroups();
@@ -98,15 +108,9 @@ const GroupTable = () => {
     document.body.removeChild(link);
   };
 
-  const filteredGroups = groups
-    .filter(group => {
-      if (!user) return false;
-      if (selectedTab === 0 && user.role !== 'admin') {
-        return group.admin_id === user.id;
-      }
-      return true;
-    })
-    .filter(group => group.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredGroups = groups.filter(group =>
+    group.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const totalPages = Math.ceil(filteredGroups.length / pageSize);
   const paginatedGroups = filteredGroups.slice(
@@ -122,9 +126,7 @@ const GroupTable = () => {
     };
 
     return (
-      <span className={`text-sm font-semibold px-2 py-1 rounded-full ${statusClasses[status]}`}>
-        {status}
-      </span>
+      <span className={`text-sm font-semibold px-2 py-1 rounded-full ${statusClasses[status]}`}>{status}</span>
     );
   };
 
@@ -188,28 +190,6 @@ const GroupTable = () => {
           </div>
         </div>
       </div>
-
-      {user?.role !== 'admin' && (
-        <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-          <Tab.List className="flex gap-4 mb-6">
-            {['Your Groups', 'All Groups'].map((label, index) => (
-              <Tab
-                key={index}
-                className={({ selected }) =>
-                  classNames(
-                    'px-4 py-2 rounded-full border text-sm',
-                    selected
-                      ? 'bg-emerald-700 text-white'
-                      : 'border-emerald-700 text-emerald-700 hover:bg-emerald-100'
-                  )
-                }
-              >
-                {label}
-              </Tab>
-            ))}
-          </Tab.List>
-        </Tab.Group>
-      )}
 
       <div className="overflow-x-auto rounded-lg shadow">
         <table className="min-w-full bg-white border">
@@ -326,26 +306,15 @@ const GroupTable = () => {
       )}
 
       {showCreateModal && (
-        <CreateGroupForm
-          onSuccess={fetchGroups}
-          onClose={() => setShowCreateModal(false)}
-        />
+        <CreateGroupForm onSuccess={fetchGroups} onClose={() => setShowCreateModal(false)} />
       )}
 
       {editGroup && (
-        <EditGroupForm
-          group={editGroup}
-          onSuccess={fetchGroups}
-          onClose={() => setEditGroup(null)}
-        />
+        <EditGroupForm group={editGroup} onSuccess={fetchGroups} onClose={() => setEditGroup(null)} />
       )}
 
       {inviteGroupId && (
-        <InviteMemberForm
-          groupId={inviteGroupId}
-          onSuccess={fetchGroups}
-          onClose={() => setInviteGroupId(null)}
-        />
+        <InviteMemberForm groupId={inviteGroupId} onSuccess={fetchGroups} onClose={() => setInviteGroupId(null)} />
       )}
     </div>
   );
