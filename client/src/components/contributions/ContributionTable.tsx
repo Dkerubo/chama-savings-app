@@ -1,7 +1,7 @@
 // src/components/contributions/ContributionTable.tsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -42,9 +42,7 @@ const ContributionTable = () => {
 
   const fetchContributions = async () => {
     try {
-      const res = await axios.get(API_BASE, {
-        withCredentials: true,
-      });
+      const res = await axios.get(API_BASE, { withCredentials: true });
       setContributions(res.data);
     } catch (err) {
       console.error('Failed to fetch contributions:', err);
@@ -87,6 +85,28 @@ const ContributionTable = () => {
     }
   };
 
+  const handleEdit = (contribution: Contribution) => {
+    setFormData({
+      amount: contribution.amount.toString(),
+      note: contribution.note,
+      receipt_number: contribution.receipt_number,
+      group_id: contribution.group_id.toString(),
+    });
+    setEditId(contribution.id);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await axios.delete(`${API_BASE}/${id}`, { withCredentials: true });
+      toast.success('Contribution deleted');
+      fetchContributions();
+    } catch (err) {
+      toast.error('Delete failed');
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchContributions();
   }, []);
@@ -112,6 +132,7 @@ const ContributionTable = () => {
               className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
               onClick={() => {
                 setEditId(null);
+                setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
                 setShowForm(!showForm);
               }}
             >
@@ -134,12 +155,9 @@ const ContributionTable = () => {
               <input
                 type="number"
                 name="amount"
-                placeholder="e.g. 1000"
                 required
                 value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 className="border px-3 py-2 rounded w-full"
               />
             </div>
@@ -150,11 +168,8 @@ const ContributionTable = () => {
               <input
                 type="text"
                 name="receipt_number"
-                placeholder="e.g. MPESA123ABC"
                 value={formData.receipt_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, receipt_number: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
                 className="border px-3 py-2 rounded w-full"
               />
             </div>
@@ -165,13 +180,10 @@ const ContributionTable = () => {
               <input
                 type="text"
                 name="group_id"
-                placeholder="e.g. 1"
-                value={formData.group_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, group_id: e.target.value })
-                }
-                className="border px-3 py-2 rounded w-full"
                 required
+                value={formData.group_id}
+                onChange={(e) => setFormData({ ...formData, group_id: e.target.value })}
+                className="border px-3 py-2 rounded w-full"
               />
             </div>
           </div>
@@ -181,11 +193,8 @@ const ContributionTable = () => {
             </label>
             <textarea
               name="note"
-              placeholder="e.g. Monthly savings for May"
               value={formData.note}
-              onChange={(e) =>
-                setFormData({ ...formData, note: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, note: e.target.value })}
               className="border px-3 py-2 rounded w-full"
             />
           </div>
@@ -200,7 +209,6 @@ const ContributionTable = () => {
         </form>
       )}
 
-      {/* Render the contributions table */}
       <div className="bg-white shadow rounded">
         <table className="min-w-full table-auto border text-sm">
           <thead className="bg-emerald-100">
@@ -211,6 +219,7 @@ const ContributionTable = () => {
               <th className="px-4 py-2 text-left">Note</th>
               <th className="px-4 py-2 text-left">Status</th>
               <th className="px-4 py-2 text-left">Date</th>
+              {user?.role === 'admin' && <th className="px-4 py-2 text-left">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -221,9 +230,17 @@ const ContributionTable = () => {
                 <td className="px-4 py-2">{c.receipt_number}</td>
                 <td className="px-4 py-2">{c.note}</td>
                 <td className="px-4 py-2 capitalize">{c.status}</td>
-                <td className="px-4 py-2">
-                  {new Date(c.created_at).toLocaleDateString()}
-                </td>
+                <td className="px-4 py-2">{new Date(c.created_at).toLocaleDateString()}</td>
+                {user?.role === 'admin' && (
+                  <td className="px-4 py-2 flex gap-2">
+                    <button onClick={() => handleEdit(c)} className="text-blue-600 hover:underline flex items-center text-sm">
+                      <FiEdit2 className="mr-1" /> Edit
+                    </button>
+                    <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline flex items-center text-sm">
+                      <FiTrash2 className="mr-1" /> Delete
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
