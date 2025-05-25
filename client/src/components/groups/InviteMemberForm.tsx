@@ -22,7 +22,7 @@ const InviteMemberForm = ({ groupId, onClose, onSuccess }: Props) => {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/members/invite`,
+        `https://chama-savings-app.onrender.com/api/members/invite`,
         { group_id: groupId, email },
         {
           withCredentials: true,
