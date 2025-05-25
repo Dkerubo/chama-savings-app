@@ -50,7 +50,7 @@ const handleChange = (
     e.preventDefault();
     try {
       await axios.put(
-        `http://localhost:5000/api/groups/${group.id}`,
+        `https://chama-savings-app.onrender.com/api/groups/${group.id}`,
         {
           ...formData,
           target_amount: parseFloat(formData.target_amount),
