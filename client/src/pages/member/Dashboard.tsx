@@ -1,9 +1,13 @@
 // src/pages/member/MemberDashboard.tsx
 
-import MemberStatCard from "../../components/member/MemberStatCard";
 import { useEffect, useState } from "react";
+import axios from "axios";
+import MemberStatCard from "../../components/member/MemberStatCard";
+import { useAuth } from "../../context/AuthContext";
 
 const MemberDashboard = () => {
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     contributions: 0,
     loans: 0,
@@ -14,16 +18,32 @@ const MemberDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/member/summary");
-        const data = await response.json();
-        setStats(data);
-      } catch (error) {
-        console.error("Failed to fetch member stats", error);
+        const response = await axios.get("https://chama-savings-app.onrender.com/api/member/summary", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        });
+        setStats(response.data);
+      } catch (error: any) {
+        console.error("❌ Failed to fetch member stats:", error);
+        if (error.response) {
+          console.error("Response status:", error.response.status);
+          console.error("Response data:", error.response.data);
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchStats();
-  }, []);
+    if (token) {
+      fetchStats();
+    }
+  }, [token]);
+
+  if (loading) {
+    return <div className="p-6 text-gray-600">Loading dashboard...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
