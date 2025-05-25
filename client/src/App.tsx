@@ -28,8 +28,8 @@ const MemberLayout = lazy(() => import("./layouts/MemberLayout"));
 // Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
-const CreateGroupPage = lazy(() => import("./pages/admin/Groups")); 
-const ContributionPage = lazy(() => import("./pages/admin/Contributions"));
+const CreateGroupPage = lazy(() => import("./pages/groups/CreateGroupPage")); // ✅ Fixed import
+const ContributionsPage = lazy(() => import("./pages/member/Contributions")); // ✅ Renamed to match export
 
 // Member Pages
 const MemberDashboard = lazy(() => import("./pages/member/Dashboard"));
@@ -70,7 +70,7 @@ function App() {
                       <Route index element={<AdminDashboard />} />
                       <Route path="dashboard" element={<AdminDashboard />} />
                       <Route path="users" element={<AdminUsers />} />
-                      <Route path="groups" element={<CreateGroupPage />} /> 
+                      <Route path="groups" element={<CreateGroupPage />} />
                       <Route path="contributions" element={<ContributionsPage />} />
                     </Route>
 
