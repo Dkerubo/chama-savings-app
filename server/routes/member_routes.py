@@ -1,34 +1,61 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from server.extensions import db
 from server.models.member import Member
+from server.models.contribution import Contribution
+from server.models.loan import Loan
 from sqlalchemy import or_
 
-member_bp = Blueprint('member', __name__)
+member_bp = Blueprint('member', __name__, url_prefix='/api/member')
 
+
+# ─────────────────────────────
+# GET all members
+# ─────────────────────────────
 @member_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_all_members():
     try:
         members = Member.query.all()
         return jsonify([m.serialize() for m in members]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print("❌ Failed to get members:", e)
+        return jsonify({'error': 'Failed to retrieve members'}), 500
 
+
+# ─────────────────────────────
+# GET member by ID
+# ─────────────────────────────
 @member_bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
 def get_member(id):
     try:
         member = Member.query.get_or_404(id)
         return jsonify(member.serialize()), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    # Backend Endpoint: add a route to fetch member info for the current user
-@member_bp.route('/user/<int:user_id>', methods=['GET'])
-def get_member_by_user(user_id):
-    member = Member.query.filter_by(user_id=user_id).first()
-    if not member:
-        return jsonify({'error': 'Member not found'}), 404
-    return jsonify({'member_id': member.id})
 
+
+# ─────────────────────────────
+# GET member by user ID
+# ─────────────────────────────
+@member_bp.route('/user/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_member_by_user(user_id):
+    try:
+        member = Member.query.filter_by(user_id=user_id).first()
+        if not member:
+            return jsonify({'error': 'Member not found'}), 404
+        return jsonify({'member_id': member.id}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ─────────────────────────────
+# CREATE a new member
+# ─────────────────────────────
 @member_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_member():
     data = request.get_json()
     try:
@@ -51,7 +78,12 @@ def create_member():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+
+# ─────────────────────────────
+# UPDATE member
+# ─────────────────────────────
 @member_bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
 def update_member(id):
     data = request.get_json()
     try:
@@ -70,7 +102,12 @@ def update_member(id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+
+# ─────────────────────────────
+# DELETE member
+# ─────────────────────────────
 @member_bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_member(id):
     try:
         member = Member.query.get_or_404(id)
@@ -81,8 +118,12 @@ def delete_member(id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# ✅ Filter by Group
+
+# ─────────────────────────────
+# GET members by group ID
+# ─────────────────────────────
 @member_bp.route('/group/<int:group_id>', methods=['GET'])
+@jwt_required()
 def get_members_by_group(group_id):
     try:
         members = Member.query.filter_by(group_id=group_id).all()
@@ -90,8 +131,12 @@ def get_members_by_group(group_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ✅ Search by Name or Email
+
+# ─────────────────────────────
+# SEARCH members by name/email
+# ─────────────────────────────
 @member_bp.route('/search', methods=['GET'])
+@jwt_required()
 def search_members():
     query = request.args.get('q', '')
     try:
@@ -105,8 +150,12 @@ def search_members():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ✅ Invite Member (Stub logic)
+
+# ─────────────────────────────
+# STUB: Invite Member
+# ─────────────────────────────
 @member_bp.route('/invite', methods=['POST'])
+@jwt_required()
 def invite_member():
     data = request.get_json()
     email = data.get('email')
@@ -116,9 +165,39 @@ def invite_member():
         return jsonify({'error': 'Email and group_id are required.'}), 400
 
     try:
-        # In real app: send email invite or create user with pending status
+        # In production: send an email or create a user entry
         return jsonify({
             'message': f'Invite sent to {email} for group ID {group_id} (stubbed)'
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ─────────────────────────────
+# DASHBOARD STATS for current member
+# ─────────────────────────────
+@member_bp.route('/summary', methods=['GET'])
+@jwt_required()
+def get_member_summary():
+    try:
+        current_user = get_jwt_identity()
+        member = Member.query.filter_by(user_id=current_user['id']).first()
+
+        if not member:
+            return jsonify({'error': 'Member not found'}), 404
+
+        contributions = sum([float(c.amount or 0) for c in member.contributions or [] if c.status == 'confirmed'])
+        loans = sum([float(l.amount or 0) for l in member.loans or [] if l.status in ['approved', 'active']])
+        payments = sum([float(p.amount or 0) for l in member.loans or [] for p in l.payments or [] if p.status == 'completed'])
+        balance = contributions - payments
+
+        return jsonify({
+            'contributions': round(contributions, 2),
+            'loans': round(loans, 2),
+            'payments': round(payments, 2),
+            'balance': round(balance, 2)
+        }), 200
+
+    except Exception as e:
+        print("❌ Error in get_member_summary:", e)
+        return jsonify({'error': 'Failed to load member stats'}), 500
