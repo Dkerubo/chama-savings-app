@@ -10,7 +10,7 @@ const UsersPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getUsers(1, 100); // Get first 100 users
+        const data = await getUsers(1, 100);
         setUsers(data.users);
       } catch (err) {
         console.error('Failed to fetch users');
@@ -23,7 +23,7 @@ const UsersPage: React.FC = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">User List</h1>
-      <UserTable users={users} />
+      <UserTable users={users} setUsers={setUsers} />
     </div>
   );
 };
