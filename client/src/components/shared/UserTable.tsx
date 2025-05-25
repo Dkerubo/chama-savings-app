@@ -6,7 +6,7 @@ import { updateUser, deleteUser as apiDeleteUser } from '../../api/userApi';
 
 interface Props {
   users: User[];
-  setUsers: (users: User[]) => void;
+  setUsers: (users: User[] | ((prev: User[]) => User[])) => void;
 }
 
 const UserTable: React.FC<Props> = ({ users, setUsers }) => {
@@ -16,21 +16,21 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
     if (!editingUser) return;
     try {
       await updateUser(Number(editingUser.id), editingUser);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === editingUser.id ? editingUser : u))
+      setUsers((prev: User[]) =>
+        prev.map((u: User) => (u.id === editingUser.id ? editingUser : u))
       );
       setEditingUser(null);
     } catch (err) {
-      alert('Failed to update user.');
+      alert('Update failed');
     }
   };
 
   const handleDeleteUser = async (id: string) => {
     try {
       await apiDeleteUser(Number(id));
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      setUsers((prev: User[]) => prev.filter((u: User) => u.id !== id));
     } catch (err) {
-      alert('Failed to delete user.');
+      alert('Delete failed');
     }
   };
 
