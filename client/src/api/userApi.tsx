@@ -1,9 +1,10 @@
+// src/api/userApi.ts
 import axios from 'axios';
 import { User } from '../types';
 
 const API_BASE = '/api/users';
 
-// Helper to get auth headers
+// === Helper: Get Authorization Headers ===
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error('No authentication token found');
@@ -14,23 +15,12 @@ const getAuthHeaders = () => {
   };
 };
 
-// Type for paginated user response
-type PaginatedUsers = {
-  users: User[];
-  total: number;
-  pages: number;
-  current_page: number;
-};
-
 /**
- * Get paginated list of users (admin only)
+ * Fetch all users (admin/superadmin only)
  */
-export const getUsers = async (
-  page = 1,
-  per_page = 10
-): Promise<PaginatedUsers> => {
+export const getUsers = async (): Promise<{ users: User[] }> => {
   try {
-    const { data } = await axios.get(`${API_BASE}?page=${page}&per_page=${per_page}`, getAuthHeaders());
+    const { data } = await axios.get(`${API_BASE}`, getAuthHeaders());
     return data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -47,8 +37,8 @@ export const createUser = async (
   user: Omit<User, 'id'> & { password: string }
 ): Promise<User> => {
   try {
-    const { data } = await axios.post(`${API_BASE}/create`, user, getAuthHeaders());
-    return data.user;
+    const { data } = await axios.post(`${API_BASE}`, user, getAuthHeaders());
+    return data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(error.response?.data?.error || 'Failed to create user');
@@ -66,7 +56,7 @@ export const updateUser = async (
 ): Promise<User> => {
   try {
     const { data } = await axios.put(`${API_BASE}/${id}`, updates, getAuthHeaders());
-    return data.user;
+    return data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(error.response?.data?.error || 'Failed to update user');
@@ -90,7 +80,7 @@ export const deleteUser = async (id: number): Promise<void> => {
 };
 
 /**
- * Get current user's profile
+ * Get current logged-in user's profile
  */
 export const getProfile = async (): Promise<User> => {
   try {
@@ -112,7 +102,7 @@ export const updateProfile = async (
 ): Promise<User> => {
   try {
     const { data } = await axios.put(`${API_BASE}/me`, updates, getAuthHeaders());
-    return data.user;
+    return data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(error.response?.data?.error || 'Failed to update profile');
