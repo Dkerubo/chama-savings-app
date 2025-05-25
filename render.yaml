@@ -22,4 +22,4 @@ services:
       runOnDeploy: true
       commands:
         - flask db upgrade
-        - python server/seed.py
+        - python3 server/seed.py
