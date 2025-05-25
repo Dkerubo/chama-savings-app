@@ -1,7 +1,7 @@
 services:
   - type: web
     name: chama-backend
-    env: python3
+    env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn 'server.app:create_app()'
     envVars:
@@ -22,3 +22,4 @@ services:
       runOnDeploy: true
       commands:
         - flask db upgrade
+        - python server/seed.py
