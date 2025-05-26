@@ -8,9 +8,7 @@ from sqlalchemy import or_
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
 
 
-# ─────────────────────────────
-# GET all members
-# ─────────────────────────────
+# Get all members
 @member_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_all_members():
@@ -22,9 +20,7 @@ def get_all_members():
         return jsonify({'error': 'Failed to retrieve members'}), 500
 
 
-# ─────────────────────────────
-# GET member by ID
-# ─────────────────────────────
+# Get member by ID
 @member_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_member(id):
@@ -35,9 +31,7 @@ def get_member(id):
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# GET member by user ID
-# ─────────────────────────────
+# Get member by user ID
 @member_bp.route('/user/<int:user_id>', methods=['GET'])
 @jwt_required()
 def get_member_by_user(user_id):
@@ -50,16 +44,15 @@ def get_member_by_user(user_id):
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# CREATE a new member
-# ─────────────────────────────
+# Create new member
 @member_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_member():
     data = request.get_json()
     try:
-        if not all(k in data for k in ['name', 'email', 'user_id', 'group_id']):
-            return jsonify({'error': 'Missing required fields: name, email, user_id, group_id'}), 400
+        required_fields = ['name', 'email', 'user_id', 'group_id']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': f"Missing fields: {', '.join(required_fields)}"}), 400
 
         member = Member(
             name=data['name'],
@@ -78,23 +71,16 @@ def create_member():
         return jsonify({'error': str(e)}), 400
 
 
-# ─────────────────────────────
-# UPDATE member
-# ─────────────────────────────
+# Update member
 @member_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_member(id):
     data = request.get_json()
     try:
         member = Member.query.get_or_404(id)
-        member.name = data.get('name', member.name)
-        member.email = data.get('email', member.email)
-        member.phone = data.get('phone', member.phone)
-        member.address = data.get('address', member.address)
-        member.status = data.get('status', member.status)
-        member.group_id = data.get('group_id', member.group_id)
-        member.user_id = data.get('user_id', member.user_id)
-
+        for field in ['name', 'email', 'phone', 'address', 'status', 'group_id', 'user_id']:
+            if field in data:
+                setattr(member, field, data[field])
         db.session.commit()
         return jsonify(member.serialize()), 200
     except Exception as e:
@@ -102,9 +88,7 @@ def update_member(id):
         return jsonify({'error': str(e)}), 400
 
 
-# ─────────────────────────────
-# DELETE member
-# ─────────────────────────────
+# Delete member
 @member_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_member(id):
@@ -118,9 +102,7 @@ def delete_member(id):
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# GET members by group ID
-# ─────────────────────────────
+# Get members by group
 @member_bp.route('/group/<int:group_id>', methods=['GET'])
 @jwt_required()
 def get_members_by_group(group_id):
@@ -131,9 +113,7 @@ def get_members_by_group(group_id):
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# SEARCH members by name/email
-# ─────────────────────────────
+# Search members
 @member_bp.route('/search', methods=['GET'])
 @jwt_required()
 def search_members():
@@ -141,8 +121,8 @@ def search_members():
     try:
         members = Member.query.filter(
             or_(
-                Member.name.ilike(f'%{query}%'),
-                Member.email.ilike(f'%{query}%')
+                Member.name.ilike(f"%{query}%"),
+                Member.email.ilike(f"%{query}%")
             )
         ).all()
         return jsonify([m.serialize() for m in members]), 200
@@ -150,9 +130,7 @@ def search_members():
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# STUB: Invite Member
-# ─────────────────────────────
+# Invite member (Stub)
 @member_bp.route('/invite', methods=['POST'])
 @jwt_required()
 def invite_member():
@@ -161,10 +139,9 @@ def invite_member():
     group_id = data.get('group_id')
 
     if not email or not group_id:
-        return jsonify({'error': 'Email and group_id are required.'}), 400
+        return jsonify({'error': 'Email and group_id are required'}), 400
 
     try:
-        # In production: send an email or create a user entry
         return jsonify({
             'message': f'Invite sent to {email} for group ID {group_id} (stubbed)'
         }), 200
@@ -172,9 +149,7 @@ def invite_member():
         return jsonify({'error': str(e)}), 500
 
 
-# ─────────────────────────────
-# DASHBOARD STATS for current member
-# ─────────────────────────────
+# Dashboard summary for current member
 @member_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_member_summary():
@@ -185,18 +160,12 @@ def get_member_summary():
         if not member:
             return jsonify({'error': 'Member not found'}), 404
 
-        contributions = sum([float(c.amount or 0) for c in member.contributions or [] if c.status == 'confirmed'])
-        loans = sum([float(l.amount or 0) for l in member.loans or [] if l.status in ['approved', 'active']])
-        payments = sum([float(p.amount or 0) for l in member.loans or [] for p in l.payments or [] if p.status == 'completed'])
-        balance = contributions - payments
+        contributions = sum(float(c.amount or 0) for c in member.contributions if c.status == 'confirmed')
 
         return jsonify({
-            'contributions': round(contributions, 2),
-            'loans': round(loans, 2),
-            'payments': round(payments, 2),
-            'balance': round(balance, 2)
+            'contributions': round(contributions, 2)
         }), 200
 
     except Exception as e:
-        print("❌ Error in get_member_summary:", e)
+        print("❌ Error in /summary:", e)
         return jsonify({'error': 'Failed to load member stats'}), 500
