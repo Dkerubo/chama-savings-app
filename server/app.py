@@ -9,7 +9,7 @@ from server.routes.group import group_bp
 from server.routes.member_routes import member_bp
 from server.routes.contribution_routes import contribution_bp
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
 def create_app():
@@ -25,9 +25,9 @@ def create_app():
 
     # === CORS Setup ===
     frontend_origin = os.getenv("FRONTEND_ORIGIN", "https://chama-savings-app-1.onrender.com")
-    CORS(app, resources={r"/api/*": {"origins": frontend_origin}}, supports_credentials=True)
+    CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": [frontend_origin]}})
 
-    # === Initialize Extensions ===
+    # === Init Extensions ===
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
@@ -37,10 +37,10 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(user_bp, url_prefix='/api/users')
     app.register_blueprint(group_bp, url_prefix='/api/groups')
-    app.register_blueprint(member_bp, url_prefix='/api/members')
+    app.register_blueprint(member_bp, url_prefix='/api/member')
     app.register_blueprint(contribution_bp, url_prefix='/api/contributions')
 
-    # === Root Route (Health Check) ===
+    # === Root Route ===
     @app.route('/')
     def home():
         return jsonify({"message": "✅ Welcome to the Chama API"})
@@ -48,7 +48,7 @@ def create_app():
     return app
 
 
-# === For Local Development ===
+# Local testing
 if __name__ == '__main__':
     app = create_app()
     port = int(os.getenv('PORT', 10000))
