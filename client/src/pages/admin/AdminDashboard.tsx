@@ -12,14 +12,23 @@ const AdminDashboard = () => {
   useEffect(() => {
     // Fetch summary stats from API
     const fetchStats = async () => {
-      try {
-        const response = await fetch("/api/admin/summary");
-        const data = await response.json();
-        setStats(data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard stats", error);
-      }
-    };
+  try {
+    const token = localStorage.getItem("token");
+    const response = await fetch("/api/admin/summary", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const text = await response.text();
+    console.log("Raw response:", text); // <- see what you're getting
+    const data = JSON.parse(text); // throws if not JSON
+
+    setStats(data);
+  } catch (error) {
+    console.error("Failed to fetch dashboard stats", error);
+  }
+};
 
     fetchStats();
   }, []);
