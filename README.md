@@ -29,7 +29,6 @@ A full-stack digital platform to manage **group savings (chamas)**. It empowers 
 
 | Role       | Username     | Email                  | Password     |
 |------------|--------------|------------------------|--------------|
-| Superadmin | superadmin   | superadmin@chama.com   | admin123     |
 | Admin      | admin        | admin@chama.com        | admin123     |
 | Member     | james68      | member@chama.com       | member123    |
 
