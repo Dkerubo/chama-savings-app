@@ -9,7 +9,7 @@ const Sidebar = ({ role }: Props) => {
 
   const adminLinks = [
     { label: "Dashboard", path: "/admin/dashboard" },
-    { label: "Members", path: "/admin/users" },
+    { label: "Users", path: "/admin/users" },
     { label: "Groups", path: "/admin/groups" },
     { label: "All Contributions", path: "/admin/contributions" },
   ];
