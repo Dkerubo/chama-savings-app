@@ -50,6 +50,9 @@ const ContributionTable = () => {
   const fetchContributions = async () => {
     try {
       const res = await axios.get(`${API_BASE}/contributions`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
         withCredentials: true,
       });
       const all = res.data;
@@ -62,7 +65,12 @@ const ContributionTable = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/groups`, { withCredentials: true });
+      const res = await axios.get(`${API_BASE}/groups`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+        withCredentials: true,
+      });
       setGroups(res.data);
     } catch (err) {
       console.error('Failed to fetch groups:', err);
@@ -80,10 +88,20 @@ const ContributionTable = () => {
         group_id: parseInt(formData.group_id),
       };
       if (editId !== null) {
-        await axios.put(`${API_BASE}/contributions/${editId}`, payload, { withCredentials: true });
+        await axios.put(`${API_BASE}/contributions/${editId}`, payload, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+          withCredentials: true,
+        });
         toast.success('Contribution updated');
       } else {
-        await axios.post(`${API_BASE}/contributions`, payload, { withCredentials: true });
+        await axios.post(`${API_BASE}/contributions`, payload, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+          withCredentials: true,
+        });
         toast.success('Contribution submitted');
       }
       setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
@@ -109,7 +127,12 @@ const ContributionTable = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`${API_BASE}/contributions/${id}`, { withCredentials: true });
+      await axios.delete(`${API_BASE}/contributions/${id}`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+        withCredentials: true,
+      });
       toast.success('Contribution deleted');
       fetchContributions();
     } catch (err) {
