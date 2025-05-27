@@ -141,22 +141,39 @@ Damaris Kerubo
 ## 🖼️ Screenshots
 
 ### 🔐 Login Page
-![Login Page](./client/public/screenshots/login.png)
+![Login Page](./client/public/assets/login.png)
 
 ---
 
 ### 🧑‍💼 Admin Dashboard
-![Admin Dashboard](./client/public/screenshots/dashboard.png)
+![Admin Dashboard](./client/public/assets/admin.png)
+
+---
+---
+
+### 🧑‍💼 Member Dashboard
+![Member Dashboard](./client/public/assets/member.png)
 
 ---
 
 ### 👥 Group Management
-![Groups](./client/public/screenshots/groups.png)
+![Groups](./client/public/assets/groups.png)
 
 ---
+---
 
-### 💰 Contributions Page
-![Contributions](./client/public/screenshots/contributions.png)
+### 👥Member Group
+![Groups](./client/public/assets/membergroups.png)
+
+--- 
+### 💰Member Contributions Page
+![Contributions](./client/public/assets/contributions.png)
+
+---
+---
+
+### 💰Admin Contributions Page
+![AdminContributions](./client/public/assets/admincontributions.png)
 
 ---
 
