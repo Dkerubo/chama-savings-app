@@ -1,23 +1,40 @@
 // src/components/shared/UserTable.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { User } from '../../types';
-import { updateUser, deleteUser as apiDeleteUser } from '../../api/userApi';
+import {
+  getUsers,
+  updateUser,
+  deleteUser as apiDeleteUser,
+} from '../../api/userApi';
 
-interface Props {
-  users: User[];
-  setUsers: (users: User[] | ((prev: User[]) => User[])) => void;
-}
-
-const UserTable: React.FC<Props> = ({ users, setUsers }) => {
+const UserTable: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await getUsers();
+        setUsers(res.users);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
     try {
-      await updateUser(Number(editingUser.id), editingUser);
-      setUsers((prev: User[]) =>
-        prev.map((u: User) => (u.id === editingUser.id ? editingUser : u))
+      const updated = await updateUser(Number(editingUser.id), editingUser);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editingUser.id ? updated : u))
       );
       setEditingUser(null);
     } catch (err) {
@@ -25,10 +42,10 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
+  const handleDeleteUser = async (id: number) => {
     try {
-      await apiDeleteUser(Number(id));
-      setUsers((prev: User[]) => prev.filter((u: User) => u.id !== id));
+      await apiDeleteUser(id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
     } catch (err) {
       alert('Delete failed');
     }
@@ -46,6 +63,9 @@ const UserTable: React.FC<Props> = ({ users, setUsers }) => {
         return 'bg-yellow-100 text-yellow-800';
     }
   };
+
+  if (loading) return <p>Loading users...</p>;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
     <div className="space-y-8">
