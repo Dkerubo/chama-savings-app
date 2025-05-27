@@ -135,3 +135,29 @@ Distributed under the MIT License. See LICENSE file for details.
 Damaris Kerubo
 📧 damariskerry@gmail.com
 🔗 GitHub Repo
+
+---
+
+## 🖼️ Screenshots
+
+### 🔐 Login Page
+![Login Page](./client/public/screenshots/login.png)
+
+---
+
+### 🧑‍💼 Admin Dashboard
+![Admin Dashboard](./client/public/screenshots/dashboard.png)
+
+---
+
+### 👥 Group Management
+![Groups](./client/public/screenshots/groups.png)
+
+---
+
+### 💰 Contributions Page
+![Contributions](./client/public/screenshots/contributions.png)
+
+---
+
+
