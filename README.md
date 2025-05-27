@@ -1,6 +1,6 @@
  💰 Chama Savings App
 
-A full-stack digital platform to manage **group savings (chamas)**. It empowers users to form groups, contribute savings, take loans, and manage finances transparently and efficiently.
+A full-stack digital platform to manage **group savings (chamas)**. It empowers users to form groups, contribute savings, and manage finances transparently and efficiently.
 
 ---
 
