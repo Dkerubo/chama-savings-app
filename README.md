@@ -1,214 +1,138 @@
-# Chama App
+ 💰 Chama Savings App
 
+A full-stack digital platform to manage **group savings (chamas)**. It empowers users to form groups, contribute savings, take loans, and manage finances transparently and efficiently.
 
-## Project Idea
-A digital chama (group saving platform) to manage group savings, contributions, loans, and transactions.
+---
 
-## Objectives
-- Allow users to create or join chamas
-- Track contributions and loans
-- Manage chama finances transparently
+## 🚀 Core Features
 
-## Tech Stack
-- **Frontend:** React (Vite)
-- **Backend:** Flask (Python)
-- **Database:** SQLite (dev) / PostgreSQL (prod)
-Here's a comprehensive **README.md** for your authentication system that covers both frontend (React) and backend (Flask) components:
+- ✅ User registration & login (with roles)
+- 👥 Create or join savings groups
+- 💸 Record and track contributions
+- 📊 Loan management system
+- 🔐 JWT-secured authentication
+- 🧑‍🤝‍🧑 Role-based dashboards (Member, Admin, Superadmin)
 
-```markdown
-# Authentication System
+---
 
-A full-stack authentication system with JWT-based secure authentication, user registration, and role-based access control.
+## 🧱 Tech Stack
 
+| Layer     | Stack                                       |
+|-----------|---------------------------------------------|
+| Frontend  | React + Vite + Tailwind CSS + TypeScript    |
+| Backend   | Flask (Python) + Flask-JWT-Extended         |
+| Database  | SQLite (dev) / PostgreSQL (production)      |
 
-## Features
+---
 
-- **User Registration** with form validation
-- **Secure Login** with JWT tokens
-- **Protected Routes** using React Router
-- **Role-based Authorization** (member, admin, superadmin)
-- **Password Hashing** with Werkzeug
-- **Form Validation** on both client and server
-- **Responsive UI** with Tailwind CSS
-- **API Documentation** with Swagger (optional)
+## 🧪 Test Login Credentials
 
-## Tech Stack
+| Role       | Username     | Email                  | Password     |
+|------------|--------------|------------------------|--------------|
+| Superadmin | superadmin   | superadmin@chama.com   | admin123     |
+| Admin      | admin        | admin@chama.com        | admin123     |
+| Member     | james68      | member@chama.com       | member123    |
 
-### Frontend (React)
-- React 18
-- TypeScript
-- React Router 6
-- Axios for API calls
-- Tailwind CSS + Heroicons
-- JWT authentication flow
+---
 
-### Backend (Flask)
-- Python 3.9+
-- Flask
-- Flask-JWT-Extended
-- SQLAlchemy ORM
-- Werkzeug Security
-- PostgreSQL (or SQLite for development)
+## ⚙️ Getting Started
 
-## Installation
+### 🔧 Backend Setup
 
-### Backend Setup
+```bash
+# 1. Clone the repo
+git clone https://github.com/Dkerubo/chama-savings-app.git
+cd chama-savings-app/server
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/auth-system.git
-   cd auth-system/backend
-   ```
+# 2. Set up virtual environment
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
 
-2. Create and activate virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
-   ```
+# 3. Install dependencies
+pip install -r requirements.txt
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# 4. Run migrations and seed data
+flask db upgrade
+PYTHONPATH=. python3 server/seed.py
 
-4. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
+# 5. Start backend
+flask run
 
-5. Run migrations:
-   ```bash
-   flask db upgrade
-   ```
+    Ensure .env file is properly configured (see example below)
 
-6. Start the server:
-   ```bash
-   flask run
-   ```
+🌐 Frontend Setup
 
-### Frontend Setup
+cd client
 
-1. Navigate to frontend directory:
-   ```bash
-   cd ../frontend
-   ```
+# 1. Install dependencies
+npm install
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+# 2. Run frontend server
+npm run dev
 
-3. Start development server:
-   ```bash
-   npm run dev
-   ```
+    Make sure the backend API URL is set correctly in client/.env
 
-## API Endpoints
+🔑 Environment Variables
+📁 server/.env
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/auth/register` | POST | Register new user |
-| `/auth/login` | POST | User login |
-| `/auth/me` | GET | Get current user profile |
-| `/auth/logout` | POST | Invalidate token |
-
-## Environment Variables
-
-### Backend (.env)
-```ini
-FLASK_APP=app
+FLASK_APP=server.app:create_app
 FLASK_ENV=development
-DATABASE_URL=postgresql://user:password@localhost/auth_db
-JWT_SECRET_KEY=your-secret-key-here
-JWT_ACCESS_TOKEN_EXPIRES=3600  # 1 hour
-```
+DATABASE_URL=postgresql://user:password@localhost/chama_db
+JWT_SECRET_KEY=your-secret-key
 
-### Frontend (.env)
-```ini
+📁 client/.env
+
 VITE_API_BASE_URL=http://localhost:5000/api
-VITE_APP_NAME=AuthSystem
-```
 
-## Project Structure
+📬 API Endpoints
+Method	Endpoint	Description
+POST	/auth/register	Register a new user
+POST	/auth/login	Login and get tokens
+GET	/auth/me	Get current user
+POST	/auth/logout	Logout user
+GET	/groups	List groups
+POST	/groups	Create group (admin)
+GET	/contributions	View contributions
+POST	/contributions	Submit contribution
+...	...	More in Swagger/docs
+🧪 Running Tests
 
-```
-auth-system/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── extensions.py
-│   │   ├── models/
-│   │   │   └── user.py
-│   │   ├── routes/
-│   │   │   └── auth.py
-│   │   └── config.py
-│   ├── migrations/
-│   ├── requirements.txt
-│   └── .env.example
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   ├── components/
-    │   ├── pages/
-    │   │   ├── Login.tsx
-    │   │   └── Register.tsx
-    │   ├── App.tsx
-    │   └── main.tsx
-    ├── package.json
-    └── vite.config.ts
-```
+# Backend tests
+pytest
 
-## Usage
-
-1. Register a new user at `/register`
-2. Login with your credentials at `/login`
-3. Access protected routes with valid JWT
-4. Admin users can access admin dashboard at `/admin`
-
-## Testing
-
-Run backend tests:
-```bash
-python -m pytest tests/
-```
-
-Run frontend tests:
-```bash
+# Frontend tests
 npm test
-```
 
-## Deployment
+🚀 Deployment
+Backend
 
-### Backend
-- Recommended: Docker + Gunicorn + Nginx
-- Example Dockerfile included in `/backend`
+    Render or Railway (Gunicorn + Nginx recommended)
 
-### Frontend
-- Deploy static files to Vercel/Netlify
-- Configure production API base URL
+    Docker optional
 
-✅ Admin Credentials Created
-Role	         Username	      Email	                  Password
-Admin	         admin	         admin@chama.com	      admin123
-Member         james68	 	   member@chama.com	         member123
+Frontend
 
-## Contributing
+    Netlify / Vercel (React build)
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+    Set production VITE_API_BASE_URL in .env
 
-## License
+🙌 Contributing
 
-Distributed under the MIT License. See `LICENSE` for more information.
+    Fork the repo
 
-## Contact
+    Create your feature branch: git checkout -b feature/my-feature
 
-Damaris Kerubo - damariskerry@gmail.com
+    Commit your changes: git commit -m 'Add new feature'
 
-Project Link: https://github.com/Dkerubo/chama-savings-app
-```
+    Push to the branch: git push origin feature/my-feature
+
+    Open a Pull Request
+
+📜 License
+
+Distributed under the MIT License. See LICENSE file for details.
+📞 Contact
+
+Damaris Kerubo
+📧 damariskerry@gmail.com
+🔗 GitHub Repo
