@@ -191,9 +191,8 @@ npm test
 
 ✅ Admin Credentials Created
 Role	         Username	      Email	                  Password
-Superadmin	   superadmin	   superadmin@chama.com	   admin123
 Admin	         admin	         admin@chama.com	      admin123
-Treasurer	   treasurer	   treasurer@chama.com	   treasurer123
+Member         james68	 	   member@chama.com	         member123
 
 ## Contributing
 
