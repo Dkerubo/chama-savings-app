@@ -1,4 +1,3 @@
-// src/components/shared/UserTable.tsx
 import React, { useEffect, useState } from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { User } from '../../types';
@@ -14,7 +13,6 @@ const UserTable: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -34,7 +32,9 @@ const UserTable: React.FC = () => {
     try {
       const updated = await updateUser(Number(editingUser.id), editingUser);
       setUsers((prev) =>
-        prev.map((u) => (u.id === editingUser.id ? updated : u))
+        prev.map((u) =>
+          Number(u.id) === Number(editingUser.id) ? updated : u
+        )
       );
       setEditingUser(null);
     } catch (err) {
@@ -45,7 +45,7 @@ const UserTable: React.FC = () => {
   const handleDeleteUser = async (id: number) => {
     try {
       await apiDeleteUser(id);
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      setUsers((prev) => prev.filter((u) => Number(u.id) !== id));
     } catch (err) {
       alert('Delete failed');
     }
@@ -152,7 +152,7 @@ const UserTable: React.FC = () => {
                   </button>
                   <button
                     className="text-red-600 hover:underline"
-                    onClick={() => handleDeleteUser(user.id)}
+                    onClick={() => handleDeleteUser(Number(user.id))}
                   >
                     <FiTrash2 className="inline mr-1" /> Delete
                   </button>
