@@ -48,6 +48,8 @@ def update_contribution(id):
         contribution.note = data.get('note', contribution.note)
         contribution.status = data.get('status', contribution.status)
         contribution.receipt_number = data.get('receipt_number', contribution.receipt_number)
+        contribution.group_id = data.get('group_id', contribution.group_id)
+        contribution.member_id = data.get('member_id', contribution.member_id)
 
         db.session.commit()
         return jsonify(contribution.serialize()), 200
