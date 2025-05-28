@@ -1,11 +1,11 @@
+# ✅ BACKEND ROUTE (Flask): contribution_routes.py
+
 from flask import Blueprint, request, jsonify
 from server.extensions import db
 from server.models.contribution import Contribution
 
 contribution_bp = Blueprint('contribution', __name__, url_prefix='/api/contributions')
 
-
-# GET all contributions (Admins or filtered by member_id)
 @contribution_bp.route('/', methods=['GET'])
 def get_all_contributions():
     try:
@@ -27,8 +27,6 @@ def get_all_contributions():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-# GET a single contribution
 @contribution_bp.route('/<int:id>', methods=['GET'])
 def get_contribution(id):
     try:
@@ -37,8 +35,6 @@ def get_contribution(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-# POST: Admin or member creates a contribution
 @contribution_bp.route('/', methods=['POST'])
 def create_contribution():
     data = request.get_json()
@@ -58,8 +54,6 @@ def create_contribution():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-
-# PUT: Admin or member updates a contribution
 @contribution_bp.route('/<int:id>', methods=['PUT'])
 def update_contribution(id):
     data = request.get_json()
@@ -78,8 +72,6 @@ def update_contribution(id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-
-# DELETE a contribution
 @contribution_bp.route('/<int:id>', methods=['DELETE'])
 def delete_contribution(id):
     try:
