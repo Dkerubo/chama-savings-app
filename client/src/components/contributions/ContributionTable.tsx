@@ -1,4 +1,4 @@
-// src/components/contributions/ContributionTable.tsx
+// ✅ FRONTEND: ContributionTable.tsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
@@ -49,9 +49,9 @@ const ContributionTable = () => {
 
   const fetchContributions = async () => {
     try {
-      const res = await axios.get(${API_BASE}/contributions, {
+      const res = await axios.get(`${API_BASE}/contributions`, {
         headers: {
-          Authorization: Bearer ${auth.token},
+          Authorization: `Bearer ${auth.token}`,
         },
         withCredentials: true,
       });
@@ -65,9 +65,9 @@ const ContributionTable = () => {
 
   const fetchGroups = async () => {
     try {
-      const res = await axios.get(${API_BASE}/groups, {
+      const res = await axios.get(`${API_BASE}/groups`, {
         headers: {
-          Authorization: Bearer ${auth.token},
+          Authorization: `Bearer ${auth.token}`,
         },
         withCredentials: true,
       });
@@ -88,17 +88,17 @@ const ContributionTable = () => {
         group_id: parseInt(formData.group_id),
       };
       if (editId !== null) {
-        await axios.put(${API_BASE}/contributions/${editId}, payload, {
+        await axios.put(`${API_BASE}/contributions/${editId}`, payload, {
           headers: {
-            Authorization: Bearer ${auth.token},
+            Authorization: `Bearer ${auth.token}`,
           },
           withCredentials: true,
         });
         toast.success('Contribution updated');
       } else {
-        await axios.post(${API_BASE}/contributions, payload, {
+        await axios.post(`${API_BASE}/contributions`, payload, {
           headers: {
-            Authorization: Bearer ${auth.token},
+            Authorization: `Bearer ${auth.token}`,
           },
           withCredentials: true,
         });
@@ -127,9 +127,9 @@ const ContributionTable = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(${API_BASE}/contributions/${id}, {
+      await axios.delete(`${API_BASE}/contributions/${id}`, {
         headers: {
-          Authorization: Bearer ${auth.token},
+          Authorization: `Bearer ${auth.token}`,
         },
         withCredentials: true,
       });
@@ -162,18 +162,16 @@ const ContributionTable = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border px-2 py-1 rounded text-sm"
           />
-          {user?.id && (
-            <button
-              className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
-              onClick={() => {
-                setEditId(null);
-                setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
-                setShowForm(!showForm);
-              }}
-            >
-              <FiPlus /> Contribute
-            </button>
-          )}
+          <button
+            className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
+            onClick={() => {
+              setEditId(null);
+              setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
+              setShowForm(!showForm);
+            }}
+          >
+            <FiPlus /> Contribute
+          </button>
         </div>
       </div>
 
