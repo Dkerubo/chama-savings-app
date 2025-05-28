@@ -1,3 +1,4 @@
+# ✅ BACKEND MODEL: models/contribution.py
 from datetime import datetime
 from server.extensions import db
 from sqlalchemy import event
@@ -45,7 +46,8 @@ class Contribution(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'status': self.status,
             'receipt_number': self.receipt_number,
-            'member_name': self.member.user.username if self.member and self.member.user else None
+            'member_name': self.member.user.username if self.member and self.member.user else None,
+            'group_name': self.group.name if self.group else None
         }
 
     def confirm(self):
