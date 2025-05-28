@@ -1,4 +1,3 @@
-// src/components/contributions/ContributionTable.tsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
@@ -44,11 +43,13 @@ const ContributionTable = () => {
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const API_BASE = 'https://chama-savings-app.onrender.com/api';
 
   const fetchContributions = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${API_BASE}/contributions`, {
         headers: {
           Authorization: `Bearer ${auth.token}`,
@@ -60,6 +61,9 @@ const ContributionTable = () => {
       setContributions(filtered);
     } catch (err) {
       console.error('Failed to fetch contributions:', err);
+      toast.error('Error fetching contributions');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,37 +84,42 @@ const ContributionTable = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
     try {
       const payload = {
-        ...formData,
         member_id: user.id,
         amount: parseFloat(formData.amount),
+        note: formData.note,
+        receipt_number: formData.receipt_number,
         group_id: parseInt(formData.group_id),
       };
+
+      if (!payload.amount || !payload.group_id || !payload.receipt_number) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
       if (editId !== null) {
         await axios.put(`${API_BASE}/contributions/${editId}`, payload, {
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-          },
+          headers: { Authorization: `Bearer ${auth.token}` },
           withCredentials: true,
         });
         toast.success('Contribution updated');
       } else {
         await axios.post(`${API_BASE}/contributions`, payload, {
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-          },
+          headers: { Authorization: `Bearer ${auth.token}` },
           withCredentials: true,
         });
         toast.success('Contribution submitted');
       }
+
       setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
-      setShowForm(false);
       setEditId(null);
+      setShowForm(false);
       fetchContributions();
     } catch (err) {
-      toast.error('Submission failed');
       console.error(err);
+      toast.error('Submission failed');
     }
   };
 
@@ -128,16 +137,14 @@ const ContributionTable = () => {
   const handleDelete = async (id: number) => {
     try {
       await axios.delete(`${API_BASE}/contributions/${id}`, {
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-        },
+        headers: { Authorization: `Bearer ${auth.token}` },
         withCredentials: true,
       });
       toast.success('Contribution deleted');
       fetchContributions();
     } catch (err) {
-      toast.error('Delete failed');
       console.error(err);
+      toast.error('Delete failed');
     }
   };
 
@@ -162,18 +169,16 @@ const ContributionTable = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="border px-2 py-1 rounded text-sm"
           />
-          {user?.id && (
-            <button
-              className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
-              onClick={() => {
-                setEditId(null);
-                setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
-                setShowForm(!showForm);
-              }}
-            >
-              <FiPlus /> Contribute
-            </button>
-          )}
+          <button
+            className="bg-emerald-700 text-white px-3 py-1 rounded flex items-center gap-1"
+            onClick={() => {
+              setEditId(null);
+              setFormData({ amount: '', note: '', receipt_number: '', group_id: '' });
+              setShowForm(!showForm);
+            }}
+          >
+            <FiPlus /> Contribute
+          </button>
         </div>
       </div>
 
@@ -196,6 +201,7 @@ const ContributionTable = () => {
               <input
                 type="text"
                 name="receipt_number"
+                required
                 value={formData.receipt_number}
                 onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
                 className="border px-3 py-2 rounded w-full"
@@ -211,7 +217,9 @@ const ContributionTable = () => {
               >
                 <option value="">Select Group</option>
                 {groups.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -234,43 +242,47 @@ const ContributionTable = () => {
       )}
 
       <div className="bg-white shadow rounded">
-        <table className="min-w-full table-auto border text-sm">
-          <thead className="bg-emerald-100">
-            <tr>
-              <th className="px-4 py-2 text-left">Member</th>
-              <th className="px-4 py-2 text-left">Amount</th>
-              <th className="px-4 py-2 text-left">Receipt</th>
-              <th className="px-4 py-2 text-left">Group</th>
-              <th className="px-4 py-2 text-left">Note</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">Date</th>
-              {user?.role === 'admin' && <th className="px-4 py-2 text-left">Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredContributions.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="px-4 py-2">{c.member_name || 'N/A'}</td>
-                <td className="px-4 py-2">{c.amount}</td>
-                <td className="px-4 py-2">{c.receipt_number}</td>
-                <td className="px-4 py-2">{groups.find((g) => g.id === c.group_id)?.name || 'N/A'}</td>
-                <td className="px-4 py-2">{c.note}</td>
-                <td className="px-4 py-2 capitalize">{c.status}</td>
-                <td className="px-4 py-2">{new Date(c.created_at).toLocaleDateString()}</td>
-                {user?.role === 'admin' && (
-                  <td className="px-4 py-2 flex gap-2">
-                    <button onClick={() => handleEdit(c)} className="text-blue-600 hover:underline flex items-center text-sm">
-                      <FiEdit2 className="mr-1" /> Edit
-                    </button>
-                    <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline flex items-center text-sm">
-                      <FiTrash2 className="mr-1" /> Delete
-                    </button>
-                  </td>
-                )}
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading contributions...</div>
+        ) : (
+          <table className="min-w-full table-auto border text-sm">
+            <thead className="bg-emerald-100">
+              <tr>
+                <th className="px-4 py-2 text-left">Member</th>
+                <th className="px-4 py-2 text-left">Amount</th>
+                <th className="px-4 py-2 text-left">Receipt</th>
+                <th className="px-4 py-2 text-left">Group</th>
+                <th className="px-4 py-2 text-left">Note</th>
+                <th className="px-4 py-2 text-left">Status</th>
+                <th className="px-4 py-2 text-left">Date</th>
+                {user?.role === 'admin' && <th className="px-4 py-2 text-left">Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredContributions.map((c) => (
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-2">{c.member_name || 'N/A'}</td>
+                  <td className="px-4 py-2">{c.amount}</td>
+                  <td className="px-4 py-2">{c.receipt_number}</td>
+                  <td className="px-4 py-2">{groups.find((g) => g.id === c.group_id)?.name || 'N/A'}</td>
+                  <td className="px-4 py-2">{c.note}</td>
+                  <td className="px-4 py-2 capitalize">{c.status}</td>
+                  <td className="px-4 py-2">{new Date(c.created_at).toLocaleDateString()}</td>
+                  {user?.role === 'admin' && (
+                    <td className="px-4 py-2 flex gap-2">
+                      <button onClick={() => handleEdit(c)} className="text-blue-600 hover:underline flex items-center text-sm">
+                        <FiEdit2 className="mr-1" /> Edit
+                      </button>
+                      <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:underline flex items-center text-sm">
+                        <FiTrash2 className="mr-1" /> Delete
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
