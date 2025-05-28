@@ -251,7 +251,7 @@ const ContributionTable = () => {
                 <td className="px-4 py-2">{c.member_name || 'N/A'}</td>
                 <td className="px-4 py-2">{c.amount}</td>
                 <td className="px-4 py-2">{c.receipt_number}</td>
-                <td className="px-4 py-2">{groups.find((g) => g.id === c.group_id)?.name || 'N/A'}</td>
+                <td className="px-4 py-2">{c.group_name || 'N/A'}</td>
                 <td className="px-4 py-2">{c.note}</td>
                 <td className="px-4 py-2 capitalize">{c.status}</td>
                 <td className="px-4 py-2">{new Date(c.created_at).toLocaleDateString()}</td>
